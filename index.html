@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102b39">
+  <title>Soldering Quality Analyzer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#home" aria-label="SolderVision home">
+      <span class="brand-icon" aria-hidden="true">⌁</span>
+      <span><b>Soldering Quality<br>Analyzer</b><small>Learn. Inspect. Improve.</small></span>
+    </a>
+    <div class="sidebar-rule"></div>
+    <p class="sidebar-label">WORKSPACE</p>
+    <nav class="nav" aria-label="Main navigation">
+      <button class="nav-link active" data-view="home"><span>⌑</span>Inspection</button>
+      <button class="nav-link" data-view="learn"><span>▤</span>Learn soldering</button>
+      <button class="nav-link" data-view="history"><span>◷</span>History</button>
+      <button class="nav-link" data-view="settings"><span>⚙</span>Settings</button>
+    </nav>
+    <div class="sidebar-note"><b>Better solder joints.</b><br>More reliable electronics.</div>
+    <div class="sidebar-foot"><span class="status-dot" id="engine-status"></span><span id="engine-status-text">Checking inference engine…</span></div>
+  </aside>
+
+  <main class="main">
+    <section class="view active" id="home-view">
+      <header class="topbar">
+        <div><p class="eyebrow">SOLDERVISION · INSPECTION WORKSPACE</p><h1>Soldering Quality Analyzer</h1><p>Inspect solder joints and learn what to look for.</p></div>
+        <div class="ready-chip"><span></span><b>Model findings only</b></div>
+      </header>
+
+      <div class="workspace">
+        <section class="panel upload-panel">
+          <header class="panel-heading"><span class="section-mark">01</span><div><h2>Inspect a solder joint</h2><p>Upload a clear image to get model detections.</p></div></header>
+          <label class="dropzone" id="dropzone" for="file-input">
+            <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+            <div class="drop-content" id="drop-content">
+              <svg class="cloud-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 34h-2a9 9 0 0 1-1-18 14 14 0 0 1 27-2 10 10 0 0 1-1 20h-3M24 41V23m-7 7 7-7 7 7"/></svg>
+              <strong>Drop your image here</strong><span class="or">or browse your files</span>
+              <span class="choose-button">Choose image</span>
+              <small>JPG, PNG or WEBP · Up to 10 MB</small>
+            </div>
+            <canvas id="preview" class="preview hidden" aria-label="Selected soldering image preview"></canvas>
+            <span class="file-caption hidden" id="file-caption"></span>
+          </label>
+          <div class="upload-actions">
+            <div class="sample-picker"><label for="sample-select">Try a sample image</label><select id="sample-select"><option value="">Choose a sample</option><option value="test_image3.jpg">Sample 1 · Multi-joint header</option><option value="test_image2.jpg">Sample 2 · Solder spike board</option><option value="test_image.jpg">Sample 3 · High-density PCB</option></select></div>
+          </div>
+        </section>
+
+        <section class="panel results-panel">
+          <header class="panel-heading results-heading"><span class="section-mark">02</span><div><h2>Analysis results</h2><p id="result-subtitle">Choose an image to begin.</p></div></header>
+          <div class="metrics-grid">
+            <article class="metric good"><span class="metric-icon">✓</span><span class="metric-label">Good-class detections</span><strong id="good-count">0</strong></article>
+            <article class="metric defect"><span class="metric-icon">!</span><span class="metric-label">Known defect-class detections</span><strong id="defect-count">0</strong></article>
+            <article class="metric total"><span class="metric-icon">▦</span><span class="metric-label">Total detections</span><strong id="total-count">0</strong></article>
+            <article class="metric score"><span class="metric-icon">?</span><span class="metric-label">Board grade</span><strong id="quality-score">N/A</strong></article>
+          </div>
+          <button id="analyze-button" class="analyze-button" disabled><span>✧</span> Analyze image</button>
+          <p id="error-message" class="error-message hidden" role="alert"></p>
+          <p class="caution-note"><b>Read results carefully.</b> Detections are model findings, not a verified board grade. No detections do not prove a board is defect-free.</p>
+          <div id="verdict" class="verdict hidden"></div>
+          <div id="details" class="details hidden"></div>
+          <p class="results-empty" id="results-empty">Your model detections will appear here.</p>
+        </section>
+      </div>
+
+      <section class="learn-intro">
+        <div class="learn-copy"><p class="eyebrow">THE BASICS</p><h2>Learn to recognize a reliable joint</h2><p>Good soldering creates a clean electrical and mechanical connection. Compare the examples below, then follow a simple through-hole technique.</p><button class="text-link" data-open-view="learn">Explore the soldering guide <span>→</span></button></div>
+        <div class="mini-visuals"><img src="/images/good-solder.png" alt="Close-up reference photo of soldered through-hole joints"><img src="/images/howto.png" alt="Reference photo showing solder joints on a printed circuit board"></div>
+      </section>
+      <a class="source-link" href="https://learn.sparkfun.com/tutorials/how-to-solder-through-hole-soldering" target="_blank" rel="noreferrer">Soldering basics adapted from SparkFun’s through-hole guide ↗</a>
+    </section>
+
+    <section class="view" id="learn-view">
+      <header class="topbar page-topbar"><div><p class="eyebrow">SOLDERING FIELD GUIDE</p><h1>Learn soldering quality</h1><p>Visual clues for common joint problems and a practical starting technique.</p></div></header>
+      <div class="education-grid">
+        <article class="education-card bad-card"><img src="/images/bad-solder.png" alt="Example of an irregular solder buildup around a through-hole joint"><div class="education-body"><span class="tag bad-tag">WHAT TO CHECK</span><h2>Problem solder joint</h2><p>Look for solder that has not wetted both the component lead and pad, a weak connection with too little solder, or a large irregular buildup. Solder that bridges neighboring pads can create an unintended electrical connection.</p><p>Appearance alone is not a complete electrical test. Check the joint against the component and board requirements.</p></div></article>
+        <article class="education-card good-card"><img src="/images/good-solder.png" alt="Example photo of consistent soldered through-hole joints"><div class="education-body"><span class="tag good-tag">A HEALTHY JOINT</span><h2>Good soldering</h2><p>A sound through-hole joint typically forms a smooth, continuous fillet between the pad and lead, with enough solder to wet both surfaces and no bridge to nearby connections.</p><p>The ideal shape depends on the component, pad design, solder alloy, and process. Use the assembly requirements when available.</p></div></article>
+      </div>
+
+      <section class="howto-section">
+        <div class="howto-image"><img src="/images/howto.png" alt="Soldered through-hole connections on a green circuit board"></div>
+        <div class="howto-content"><p class="eyebrow">A SIMPLE THROUGH-HOLE METHOD</p><h2>How to make a cleaner joint</h2>
+          <ol class="steps-list">
+            <li><span>1</span><div><b>Prepare safely</b><p>Work with the board unpowered, secure it, use eye protection and good ventilation, and keep the hot iron in its stand.</p></div></li>
+            <li><span>2</span><div><b>Heat both surfaces</b><p>Place the iron tip so it touches the pad and component lead at the same time. Let both warm evenly.</p></div></li>
+            <li><span>3</span><div><b>Feed solder into the joint</b><p>Touch solder to the heated lead and pad, not just to the iron. Add only enough for a smooth fillet.</p></div></li>
+            <li><span>4</span><div><b>Remove and let it cool</b><p>Pull the solder away, then the iron. Keep the component still while the joint solidifies.</p></div></li>
+            <li><span>5</span><div><b>Inspect the connection</b><p>Look for complete wetting, a neat shape, and no solder bridges. Check continuity when appropriate.</p></div></li>
+          </ol>
+          <a class="guide-button" href="https://learn.sparkfun.com/tutorials/how-to-solder-through-hole-soldering" target="_blank" rel="noreferrer">Read the full through-hole guide ↗</a>
+        </div>
+      </section>
+      <p class="education-footnote">These are general visual cues for through-hole soldering. Surface-mount joints and production requirements can differ; follow the component and assembly specifications.</p>
+    </section>
+
+    <section class="view" id="history-view"><header class="topbar page-topbar"><div><p class="eyebrow">YOUR WORKSPACE</p><h1>Inspection history</h1><p>Recent model findings saved in this browser.</p></div></header><div class="panel history-panel" id="history-list"></div></section>
+    <section class="view" id="settings-view"><header class="topbar page-topbar"><div><p class="eyebrow">PREFERENCES</p><h1>Settings</h1><p>Configure the inference display and detection filter.</p></div></header><section class="panel settings-panel">
+      <label class="setting"><span><b>Roboflow API key</b><small>Optional if the backend already has a local key configured.</small></span><input id="api-key" type="password" placeholder="Leave blank to use backend key" autocomplete="off"></label>
+      <label class="setting"><span><b>Minimum confidence</b><small>Ignore detections below this model score. This is not an accuracy setting.</small></span><span class="range-wrap"><input id="confidence" type="range" min="10" max="90" step="5" value="35"><output id="confidence-value">35%</output></span></label>
+      <label class="setting"><span><b>Detection labels</b><small>Show detected classes and model confidence on the image.</small></span><span><input id="show-labels" type="checkbox" checked> Labels &nbsp; <input id="show-confidence" type="checkbox" checked> Confidence</span></label>
+      <label class="setting"><span><b>Box width</b><small>Set the thickness of detection outlines.</small></span><span class="range-wrap"><input id="box-width" type="range" min="1" max="6" value="3"><output id="box-width-value">3</output></span></label>
+      <button id="save-settings" class="save-button">Save settings</button><span id="saved-label" class="saved-label"></span>
+    </section></section>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>
