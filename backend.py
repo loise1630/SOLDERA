@@ -71,6 +71,12 @@ SAMPLES = {
     "test_image.jpg": "Sample 3: High-Density PCB",
 }
 EDUCATION_IMAGES = {"bad-solder.png", "good-solder.png", "howto.png"}
+PUBLIC_IMAGE_PATHS = {f"/images/{name}" for name in EDUCATION_IMAGES} | {
+    "/images/solderiron.png",
+    "/images/assets/mainbg.png",
+    "/images/assets/soldera.png",
+    "/images/assets/soldering.png",
+}
 
 
 def grade_predictions(raw_predictions: list, confidence_percent: float) -> dict:
@@ -204,7 +210,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({"samples": [{"file": f, "label": label} for f, label in SAMPLES.items()]})
         if path.startswith("/api/"):
             return self.send_json({"error": "Not found"}, 404)
-        if path.startswith("/images/") and Path(path).name in EDUCATION_IMAGES:
+        if path in PUBLIC_IMAGE_PATHS:
             self.path = path
         elif path == "/":
             self.path = "/index.html"

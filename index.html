@@ -4,31 +4,113 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102b39">
-  <title>Soldering Quality Analyzer</title>
+  <title>SOLDERA | Soldering Quality Analyzer</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <aside class="sidebar">
-    <a class="brand" href="#home" aria-label="SolderVision home">
-      <span class="brand-icon" aria-hidden="true">⌁</span>
-      <span><b>Soldering Quality<br>Analyzer</b><small>Learn. Inspect. Improve.</small></span>
-    </a>
-    <div class="sidebar-rule"></div>
-    <p class="sidebar-label">WORKSPACE</p>
-    <nav class="nav" aria-label="Main navigation">
-      <button class="nav-link active" data-view="home"><span>⌑</span>Inspection</button>
-      <button class="nav-link" data-view="learn"><span>▤</span>Learn soldering</button>
-      <button class="nav-link" data-view="history"><span>◷</span>History</button>
-      <button class="nav-link" data-view="settings"><span>⚙</span>Settings</button>
+
+  <!-- Splash: line-drawing of a soldering iron soldering a joint -->
+  <div class="splash-screen" id="splash-screen" role="status" aria-label="SOLDERA is loading">
+    <div class="splash-lockup">
+      <svg class="solder-animation" viewBox="0 0 420 250" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Line drawing of a soldering iron soldering a joint on a circuit board">
+
+        <!-- Board -->
+        <g class="d d-board">
+          <path pathLength="1" d="M44,214 H376 V238 H44 Z"/>
+          <path pathLength="1" d="M96,214 V208 H164 V214"/>
+          <path pathLength="1" d="M256,214 V208 H324 V214"/>
+        </g>
+
+        <!-- Finished joint on the right -->
+        <g class="d d-joint-done">
+          <path pathLength="1" d="M287,208 V158"/>
+          <path pathLength="1" d="M293,208 V158"/>
+          <path pathLength="1" d="M287,158 H293"/>
+          <path pathLength="1" d="M260,208 C274,207 283,200 285,182 Q290,176 295,182 C297,200 306,207 320,208"/>
+        </g>
+
+        <!-- Joint being soldered (component lead + solder fillet) -->
+        <g class="d d-lead">
+          <path pathLength="1" d="M127,208 V130"/>
+          <path pathLength="1" d="M133,208 V130"/>
+          <path pathLength="1" d="M127,130 H133"/>
+        </g>
+        <path class="d d-fillet" pathLength="1" d="M98,208 C116,207 124,200 126,180 Q130,174 134,180 C136,200 144,207 162,208"/>
+
+        <!-- Solder wire feeding in -->
+        <g class="d d-wire">
+          <path pathLength="1" d="M30,98 L116,196"/>
+          <path pathLength="1" d="M36,94 L122,192"/>
+        </g>
+
+        <!-- Smoke -->
+        <g class="d d-smoke">
+          <path pathLength="1" d="M150,184 C142,168 158,158 150,140 C144,126 154,116 150,102"/>
+          <path pathLength="1" d="M160,182 C168,166 154,156 162,138 C167,126 158,114 163,98"/>
+        </g>
+
+        <!-- Soldering iron: tip touches joint, handle goes up-right -->
+        <g class="iron">
+          <g transform="translate(131 200) rotate(-35)">
+            <!-- tip -->
+            <path class="d d-iron1" pathLength="1" d="M0,0 Q2,-2 9,-3.5 L34,-5 V5 L9,3.5 Q2,2 0,0 Z"/>
+            <!-- heater sleeve -->
+            <path class="d d-iron2" pathLength="1" d="M34,-5 H50 M34,5 H50"/>
+            <path class="d d-iron2" pathLength="1" d="M50,-8 H96 Q99,-8 99,-5 V5 Q99,8 96,8 H50 Q47,8 47,5 V-5 Q47,-8 50,-8 Z"/>
+            <path class="d d-iron2" pathLength="1" d="M60,-8 V8 M67,-8 V8 M74,-8 V8" stroke-width="2"/>
+            <!-- guard collar -->
+            <path class="d d-iron3" pathLength="1" d="M99,-12 H108 Q111,-12 111,-9 V9 Q111,12 108,12 H99 Z"/>
+            <!-- grip -->
+            <path class="d d-iron3" pathLength="1" d="M111,-10 L154,-13 Q190,-14 202,-10 Q206,-9 206,-6 V6 Q206,9 202,10 Q190,14 154,13 L111,10"/>
+            <path class="d d-iron3" pathLength="1" d="M124,-9 V9 M132,-9.5 V9.5 M140,-10 V10" stroke-width="2"/>
+            <!-- cable -->
+            <path class="d d-iron4" pathLength="1" d="M206,0 C226,0 232,12 248,12 C264,12 268,0 284,-3" stroke-width="4"/>
+          </g>
+        </g>
+
+        <!-- Spark glint at the contact point -->
+        <path class="spark" d="M118,172 V186 M111,179 H125 M113,174 L123,184 M123,174 L113,184" stroke-width="2.2"/>
+      </svg>
+      <div class="splash-logo-frame"><img class="splash-logo" src="/images/assets/soldera.png" alt="SOLDERA"></div>
+      <div class="splash-tagline">PRECISION IN EVERY JOINT.</div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <a class="site-brand" href="#home-view" aria-label="SOLDERA home" data-open-view="home"><img src="/images/assets/soldera.png" alt=""></a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <button class="nav-link active" data-view="home">Home</button>
+      <button class="nav-link" data-view="inspection">Upload</button>
+      <button class="nav-link" data-view="history">History</button>
+      <button class="nav-link" data-view="learn">Learn</button>
+      <button class="nav-link" data-view="home" data-scroll-to="about">About</button>
+      <button class="nav-link" data-view="settings">Settings</button>
     </nav>
-    <div class="sidebar-note"><b>Better solder joints.</b><br>More reliable electronics.</div>
-    <div class="sidebar-foot"><span class="status-dot" id="engine-status"></span><span id="engine-status-text">Checking inference engine…</span></div>
-  </aside>
+    <button class="header-demo" data-open-view="inspection">Get Started <span aria-hidden="true">&#8594;</span></button>
+  </header>
 
   <main class="main">
-    <section class="view active" id="home-view">
+    <section class="view landing-view active" id="home-view">
+        <div class="landing-hero">
+          <div class="hero-copy">
+          <p class="hero-kicker"><span aria-hidden="true">&#10022;</span> AI-POWERED SOLDER INSPECTION</p>
+          <h1 class="hero-wordmark"><img src="/images/assets/soldera.png" alt="SOLDERA"></h1>
+          <p class="hero-description">Upload your PCB, review solder quality, and keep your project history in one place. Built for makers, engineers, and innovators.</p>
+          <div class="hero-actions">
+            <button class="hero-primary" data-open-view="inspection"><span aria-hidden="true">&#8682;</span> Upload PCB <span aria-hidden="true">&#8594;</span></button>
+            <button class="hero-secondary" data-open-view="history"><span aria-hidden="true">&#9719;</span> View History</button>
+          </div>
+          </div>
+          <a class="scroll-cue" href="#about" data-scroll-to="about" aria-label="Scroll to About"><span class="mouse-icon"></span>Scroll Down<span class="scroll-arrow">&#8595;</span></a>
+        </div>
+      <section class="landing-about" id="about">
+        <div><p class="about-kicker">MADE FOR BETTER BUILDS</p><h2>Practice with confidence.<br>Improve every joint.</h2><p>Use image based inspection to review your soldering work, learn visual quality cues, and return to past results as your skills grow.</p></div>
+        <div class="about-points"><article><span>01</span><b>Upload a board photo</b><small>Start with a clear image of your solder joints.</small></article><article><span>02</span><b>Review model findings</b><small>See detected classes and confidence in context.</small></article><article><span>03</span><b>Build your technique</b><small>Use the learning guide to practice safer, cleaner soldering.</small></article></div>
+      </section>
+    </section>
+    <section class="view" id="inspection-view">
       <header class="topbar">
-        <div><p class="eyebrow">SOLDERVISION · INSPECTION WORKSPACE</p><h1>Soldering Quality Analyzer</h1><p>Inspect solder joints and learn what to look for.</p></div>
+        <div><p class="eyebrow">SOLDERA · INSPECTION WORKSPACE</p><h1>Soldering Quality Analyzer</h1><p>Inspect solder joints and learn what to look for.</p></div>
         <div class="ready-chip"><span></span><b>Model findings only</b></div>
       </header>
 
