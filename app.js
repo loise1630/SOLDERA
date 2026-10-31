@@ -5,6 +5,30 @@ let selectedFile = null;
 let selectedName = "";
 let settings = readSettings();
 
+const themeToggle = $("theme-toggle");
+function setNightMode(enabled, persist = true) {
+  const theme = enabled ? "night" : "day";
+  document.documentElement.dataset.theme = theme;
+  if (theme === "day") delete document.documentElement.dataset.theme;
+  if (themeToggle) {
+    const label = enabled ? "Turn off night mode" : "Turn on night mode";
+    themeToggle.setAttribute("aria-pressed", String(enabled));
+    themeToggle.setAttribute("aria-label", label);
+    themeToggle.title = label;
+  }
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", enabled ? "#10151a" : "#f5f6f7");
+  if (persist) {
+    try { localStorage.setItem("solderaTheme", theme); } catch { /* Storage can be unavailable in private browsing. */ }
+  }
+}
+
+let savedTheme = "day";
+try { savedTheme = localStorage.getItem("solderaTheme") || "day"; } catch { /* Use the light theme when storage is unavailable. */ }
+setNightMode(savedTheme === "night", false);
+themeToggle?.addEventListener("click", () => {
+  setNightMode(document.documentElement.dataset.theme !== "night");
+});
+
 /* ---------- Intro sequence ---------- */
 document.body.classList.add("splash-active");
 
@@ -27,7 +51,7 @@ document.body.classList.add("splash-active");
     finished = true;
 
     const source = splash.querySelector(".splash-logo-frame");
-    const target = document.querySelector(".hero-wordmark");
+    const target = document.querySelector(".site-brand img");
     const sourceImage = source?.querySelector("img");
 
     if (source && target && sourceImage) {
@@ -449,67 +473,30 @@ document.querySelectorAll("[data-open-view]").forEach((button) => {
   });
 });
 
-const workflowSteps = document.querySelectorAll("[data-workflow-step]");
-const workflowSection = document.querySelector(".workflow-section");
-const prefersLessMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-if (workflowSteps.length && workflowSection && !prefersLessMotion) {
-  let workflowFrame = 0;
-
-  if ("IntersectionObserver" in window) {
-    document.body.classList.add("workflow-motion");
-    const workflowObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-visible");
-        observer.unobserve(entry.target);
-      });
-    }, { threshold: 0.14 });
-    workflowSteps.forEach((step) => workflowObserver.observe(step));
-  }
-
-  function updateWorkflowProgress() {
-    workflowFrame = 0;
-    const bounds = workflowSection.getBoundingClientRect();
-    const travel = Math.max(1, window.innerHeight + bounds.height);
-    const progress = Math.max(0, Math.min(1, (window.innerHeight - bounds.top) / travel));
-    const activeIndex = Math.min(workflowSteps.length - 1, Math.floor(progress * workflowSteps.length));
-    workflowSection.style.setProperty("--workflow-progress", progress.toFixed(3));
-    workflowSection.style.setProperty("--workflow-glow-x", `${30 + progress * 40}%`);
-
-    workflowSteps.forEach((step, index) => {
-      step.classList.toggle("is-current", index === activeIndex);
-      step.classList.toggle("is-complete", index < activeIndex);
+const featureCards = document.querySelectorAll("[data-feature-card]");
+if (featureCards.length && "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  document.body.classList.add("feature-motion");
+  const featureObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
     });
-  }
-
-  function requestWorkflowProgress() {
-    if (workflowFrame) return;
-    workflowFrame = window.requestAnimationFrame(updateWorkflowProgress);
-  }
-
-  window.addEventListener("scroll", requestWorkflowProgress, { passive: true });
-  window.addEventListener("resize", requestWorkflowProgress);
-  requestWorkflowProgress();
-
-  if (window.matchMedia("(pointer: fine)").matches) {
-    workflowSteps.forEach((step) => {
-      const visual = step.querySelector(".workflow-visual");
-      if (!visual) return;
-      visual.addEventListener("pointermove", (event) => {
-        const bounds = visual.getBoundingClientRect();
-        const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-        const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-        visual.style.setProperty("--tilt-x", `${-y * 3}deg`);
-        visual.style.setProperty("--tilt-y", `${x * 3}deg`);
-      });
-      visual.addEventListener("pointerleave", () => {
-        visual.style.setProperty("--tilt-x", "0deg");
-        visual.style.setProperty("--tilt-y", "0deg");
-      });
-    });
-  }
+  }, { threshold: 0.16 });
+  featureCards.forEach((card) => featureObserver.observe(card));
 }
-
+const teamCards = document.querySelectorAll("[data-team-card]");
+if (teamCards.length && "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  document.body.classList.add("team-motion");
+  const teamObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.12 });
+  teamCards.forEach((card) => teamObserver.observe(card));
+}
 const landingHero = document.querySelector(".landing-hero");
 if (landingHero && window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches) {
   landingHero.addEventListener("pointermove", (event) => {

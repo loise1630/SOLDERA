@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102b39">
   <title>SOLDERA | Soldering Quality Analyzer</title>
+  <script>try{if(localStorage.getItem("solderaTheme")==="night")document.documentElement.dataset.theme="night";}catch{}</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -82,69 +83,93 @@
       <button class="nav-link" data-view="inspection">Upload</button>
       <button class="nav-link" data-view="history">History</button>
       <button class="nav-link" data-view="learn">Learn</button>
-      <button class="nav-link" data-view="home" data-scroll-to="about">About</button>
+      <button class="nav-link" data-view="about">About</button>
       <button class="nav-link" data-view="settings">Settings</button>
     </nav>
-    <button class="header-demo" data-open-view="inspection">Get Started <span aria-hidden="true">&#8594;</span></button>
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Turn on night mode" aria-pressed="false" title="Turn on night mode">
+        <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.6 8.6 0 0 1 8.6 3.8 8.7 8.7 0 1 0 20.2 15.4Z"/></svg>
+        <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+      </button>
+      <button class="header-demo" data-open-view="about">Meet the team <span aria-hidden="true">&#8594;</span></button>
+    </div>
   </header>
 
   <main class="main">
     <section class="view landing-view active" id="home-view">
-        <div class="landing-hero">
-          <div class="hero-copy">
+      <div class="landing-hero">
+        <div class="hero-copy">
           <p class="hero-kicker"><span aria-hidden="true">&#10022;</span> AI-POWERED SOLDER INSPECTION</p>
-          <h1 class="hero-wordmark"><img src="/images/assets/soldera.png" alt="SOLDERA"></h1>
-          <p class="hero-description">Upload your PCB, review solder quality, and keep your project history in one place. Built for makers, engineers, and innovators.</p>
+          <h1 class="hero-title">Precision starts<br>at every joint.</h1>
+          <p class="hero-description">Upload your PCB and get AI-powered<br class="desktop-break"> solder quality insights.</p>
           <div class="hero-actions">
             <button class="hero-primary" data-open-view="inspection"><span aria-hidden="true">&#8682;</span> Upload PCB <span aria-hidden="true">&#8594;</span></button>
             <button class="hero-secondary" data-open-view="history"><span aria-hidden="true">&#9719;</span> View History</button>
           </div>
+          <div class="hero-proof" aria-label="SOLDERA features">
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4M9 10h6v4H9z"/></svg>AI-powered inspection</span>
+            <i aria-hidden="true"></i>
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg>Clear defect insights</span>
+            <i aria-hidden="true"></i>
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v11H3z"/><path d="M3 7V5h7l2 2"/></svg>Project history</span>
           </div>
-          <a class="scroll-cue" href="#about" data-scroll-to="about" aria-label="Scroll to About"><span class="mouse-icon"></span>Scroll Down<span class="scroll-arrow">&#8595;</span></a>
         </div>
-      <section class="workflow-section" id="about" aria-labelledby="workflow-title">
-        <div class="workflow-heading">
-          <p class="workflow-eyebrow"><span>HOW IT WORKS</span><i aria-hidden="true"></i></p>
-          <h2 id="workflow-title">From board to better solder.</h2>
-          <p class="workflow-intro">A clear, repeatable workflow for inspecting PCB solder joints —<br class="desktop-break"> from image upload to actionable findings.</p>
-        </div>
-        <div class="workflow-grid">
-          <article class="workflow-step" data-workflow-step>
-            <div class="workflow-step-heading"><span class="workflow-number">01</span><h3>Capture</h3><span class="workflow-rule" aria-hidden="true"></span></div>
-            <div class="workflow-visual capture-visual"><img src="/images/good-solder.png" alt="Close-up photo of solder joints on a circuit board"><span class="capture-focus" aria-hidden="true"></span><span class="visual-caption"><i aria-hidden="true"></i> SHARP FOCUS</span></div>
-            <h4>Take a clear photo</h4>
-            <p>Use a well-lit, sharp image of your PCB. Keep the board steady and in focus for the best results.</p>
-            <div class="capture-tip"><span aria-hidden="true">☼</span> Good lighting <b>+</b> sharp focus <b>=</b> clearer results</div>
-          </article>
-          <article class="workflow-step" data-workflow-step>
-            <div class="workflow-step-heading"><span class="workflow-number">02</span><h3>Upload</h3><span class="workflow-rule" aria-hidden="true"></span></div>
-            <div class="workflow-visual upload-visual" aria-hidden="true">
-              <div class="upload-drop-art"><span class="upload-cloud">↑</span><b>Drop your image here</b><small>or click to browse</small></div>
-              <label>Inspection type <span>Solder joint <b>⌄</b></span></label>
-              <label>Quality level <span>Standard <b>⌄</b></span></label>
-            </div>
-            <h4>Add your image &amp; settings</h4>
-            <p>Upload your photo and choose the inspection settings that fit your project.</p>
-          </article>
-          <article class="workflow-step" data-workflow-step>
-            <div class="workflow-step-heading"><span class="workflow-number workflow-number-active">03</span><h3>Inspect</h3><span class="workflow-rule workflow-rule-active" aria-hidden="true"></span></div>
-            <div class="workflow-visual inspect-visual"><img src="/images/bad-solder.png" alt="Example solder joint shown with a review marker"><span class="inspect-ring" aria-hidden="true"></span><span class="inspect-label"><i aria-hidden="true">!</i> Review joint</span><span class="inspect-dot" aria-hidden="true"></span></div>
-            <h4>AI inspects your board</h4>
-            <p>The model highlights solder joints for review, helping you spot areas that may need a closer look.</p>
-          </article>
-          <article class="workflow-step" data-workflow-step>
-            <div class="workflow-step-heading"><span class="workflow-number">04</span><h3>Review</h3><span class="workflow-rule" aria-hidden="true"></span></div>
-            <div class="workflow-visual report-visual" aria-hidden="true">
-              <div class="report-top"><strong>SOLDERA</strong><span><i></i> Completed</span><small>INSPECTION REPORT</small></div>
-              <div class="report-summary"><img src="/images/howto.png" alt=""><div><p><b class="report-alert">!</b> 1 flagged joint</p><p><b class="report-check">✓</b> 8 other joints</p><p><b class="report-check">✓</b> Surface check: OK</p></div></div>
-              <div class="report-findings"><b>Findings</b><p><i class="report-alert">!</i> Review flagged area <span>J3</span></p><p><i class="report-check">✓</i> Other joints <span>J7</span></p><p><i class="report-check">✓</i> Other joints <span>J12</span></p></div>
-            </div>
-            <h4>Get your results</h4>
-            <p>Review flagged areas, understand each finding, and save your results for your records.</p>
-          </article>
+        <a class="scroll-cue" href="#features" data-scroll-to="features" aria-label="Scroll to features"><span class="mouse-icon"></span>Scroll Down<span class="scroll-arrow">&#8595;</span></a>
+      </div>
+      <section class="landing-features" id="features" aria-labelledby="features-title">
+        <h2 id="features-title">Everything you need<br>for better solder quality</h2>
+        <div class="landing-feature-grid">
+          <button class="landing-feature" data-feature-card data-open-view="inspection" type="button">
+            <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4"/><path d="M5 13v6h14v-6"/><path d="M7 13a5 5 0 0 1 10 0"/></svg></span>
+            <span class="feature-text"><b>Upload &amp; inspect</b><small>Quickly upload your PCB for AI-powered analysis.</small></span><span class="feature-arrow" aria-hidden="true">&#8594;</span>
+          </button>
+          <button class="landing-feature" data-feature-card data-open-view="learn" type="button">
+            <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9h4v10H4Zm6 0V5h4v14h-4Zm6 0v-7h4v7h-4Z"/></svg></span>
+            <span class="feature-text"><b>Understand results</b><small>Get clear, actionable insights on solder quality.</small></span><span class="feature-arrow" aria-hidden="true">&#8594;</span>
+          </button>
+          <button class="landing-feature" data-feature-card data-open-view="history" type="button">
+            <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v11H3z"/><path d="M3 7V5h7l2 2"/></svg></span>
+            <span class="feature-text"><b>Track every project</b><small>Keep a history of your inspections and progress.</small></span><span class="feature-arrow" aria-hidden="true">&#8594;</span>
+          </button>
         </div>
       </section>
     </section>
+    <section class="view team-view" id="about-view" aria-labelledby="team-title">
+      <div class="team-page">
+        <header class="team-heading">
+          <p class="team-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1a5.5 5.5 0 0 1 11 0v1z"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14a4 4 0 0 1 3.5 4v1h-3"/></svg>OUR TEAM</p>
+          <h1 id="team-title">Meet the Team</h1>
+          <p>A passionate team of engineers, designers, and innovators<br class="team-desktop-break"> working together to build a smarter solder inspection solution.</p>
+        </header>
+        <div class="team-grid">
+          <article class="team-card" data-team-card>
+            <div class="team-portrait portrait-daniel" role="img" aria-label="Illustrated portrait of Daniel Reyes"><svg viewBox="0 0 220 260" aria-hidden="true"><path class="portrait-hair-back" d="M40 121c-8-50 11-91 67-95 61-4 84 39 73 105l-12 48H51z"/><path class="portrait-body" d="M10 260c4-54 27-78 64-88l36 18 37-18c37 10 60 34 64 88z"/><path class="portrait-neck" d="M86 154h48v45l-24 17-24-17z"/><ellipse class="portrait-skin" cx="110" cy="112" rx="48" ry="59"/><path class="portrait-hair-front" d="M62 105c-6-43 12-76 47-80 38-5 62 24 50 71-7-12-12-24-14-39-20 20-47 27-81 26z"/><path class="portrait-detail" d="M91 117h2m34 0h2m-20 7-3 12h8m-13 13c7 6 17 6 24 0"/></svg></div>
+            <div class="team-bio"><h2>Daniel Reyes</h2><p class="team-role">Founder &amp; CEO</p><p class="team-description">Turning ideas into<br> impactful solutions.</p><div class="team-socials" aria-hidden="true"><span>in</span><span class="social-github">●</span><span class="social-mail">&#9993;</span></div></div>
+          </article>
+          <article class="team-card" data-team-card>
+            <div class="team-portrait portrait-maria" role="img" aria-label="Illustrated portrait of Maria Santos"><svg viewBox="0 0 220 260" aria-hidden="true"><path class="portrait-hair-back" d="M43 133c-11-66 9-111 67-112 63-2 82 49 68 121l-10 80H52z"/><path class="portrait-body" d="M8 260c5-54 29-79 66-88l36 18 37-18c37 9 60 34 65 88z"/><path class="portrait-neck" d="M87 154h46v43l-23 17-23-17z"/><ellipse class="portrait-skin" cx="110" cy="112" rx="45" ry="58"/><path class="portrait-hair-front" d="M65 106c-6-47 14-83 49-84 37-1 57 29 45 75-11-8-19-20-22-35-20 17-43 24-72 24z"/><path class="portrait-detail" d="M91 116h2m34 0h2m-20 8-3 12h8m-13 13c7 6 17 6 24 0"/></svg></div>
+            <div class="team-bio"><h2>Maria Santos</h2><p class="team-role">CTO</p><p class="team-description">Building intelligent<br> systems for a smarter future.</p><div class="team-socials" aria-hidden="true"><span>in</span><span class="social-github">●</span><span class="social-mail">&#9993;</span></div></div>
+          </article>
+          <article class="team-card" data-team-card>
+            <div class="team-portrait portrait-kevin" role="img" aria-label="Illustrated portrait of Kevin Dela Cruz"><svg viewBox="0 0 220 260" aria-hidden="true"><path class="portrait-hair-back" d="M40 119c-7-53 12-91 70-94 56-2 77 37 68 101l-12 49H53z"/><path class="portrait-body" d="M10 260c4-54 27-78 64-88l36 18 37-18c37 10 60 34 64 88z"/><path class="portrait-neck" d="M86 154h48v45l-24 17-24-17z"/><ellipse class="portrait-skin" cx="110" cy="112" rx="48" ry="59"/><path class="portrait-hair-front" d="M62 104c-6-42 13-76 48-79 39-4 61 26 49 72-11-7-17-18-19-34-19 17-44 24-77 23z"/><path class="portrait-glasses" d="M75 111h28l3 18H79zm43 0h28l-4 18h-21zm-12 6h12"/><path class="portrait-detail" d="M107 138h7m-17 13c7 5 17 5 24 0"/></svg></div>
+            <div class="team-bio"><h2>Kevin Dela Cruz</h2><p class="team-role">Lead Engineer</p><p class="team-description">Engineering precision<br> in every detail.</p><div class="team-socials" aria-hidden="true"><span>in</span><span class="social-github">●</span><span class="social-mail">&#9993;</span></div></div>
+          </article>
+          <article class="team-card" data-team-card>
+            <div class="team-portrait portrait-anna" role="img" aria-label="Illustrated portrait of Anna Mendoza"><svg viewBox="0 0 220 260" aria-hidden="true"><path class="portrait-hair-back" d="M40 134c-10-70 9-112 70-113 60-1 80 46 68 121l-13 72H53z"/><path class="portrait-body" d="M8 260c5-54 29-79 66-88l36 18 37-18c37 9 60 34 65 88z"/><path class="portrait-neck" d="M87 154h46v43l-23 17-23-17z"/><ellipse class="portrait-skin" cx="110" cy="112" rx="45" ry="58"/><path class="portrait-hair-front" d="M65 106c-6-47 14-83 49-84 37-1 57 29 45 75-11-8-19-20-22-35-20 17-43 24-72 24z"/><path class="portrait-glasses" d="M76 111h27l3 18H80zm42 0h27l-4 18h-20zm-12 6h12"/><path class="portrait-detail" d="M107 138h7m-17 13c7 6 17 6 24 0"/></svg></div>
+            <div class="team-bio"><h2>Anna Mendoza</h2><p class="team-role">Product Designer</p><p class="team-description">Designing intuitive<br> experiences.</p><div class="team-socials" aria-hidden="true"><span>in</span><span class="social-github">✳</span><span class="social-mail">&#9993;</span></div></div>
+          </article>
+          <article class="team-card" data-team-card>
+            <div class="team-portrait portrait-rafael" role="img" aria-label="Illustrated portrait of Rafael Aquino"><svg viewBox="0 0 220 260" aria-hidden="true"><path class="portrait-hair-back" d="M40 121c-8-50 11-91 67-95 61-4 84 39 73 105l-12 48H51z"/><path class="portrait-body" d="M10 260c4-54 27-78 64-88l36 18 37-18c37 10 60 34 64 88z"/><path class="portrait-neck" d="M86 154h48v45l-24 17-24-17z"/><ellipse class="portrait-skin" cx="110" cy="112" rx="48" ry="59"/><path class="portrait-hair-front" d="M62 105c-6-43 12-76 47-80 38-5 62 24 50 71-7-12-12-24-14-39-20 20-47 27-81 26z"/><path class="portrait-detail" d="M91 117h2m34 0h2m-20 7-3 12h8m-13 13c7 6 17 6 24 0"/></svg></div>
+            <div class="team-bio"><h2>Rafael Aquino</h2><p class="team-role">AI Specialist</p><p class="team-description">Powering smarter<br> inspection with AI.</p><div class="team-socials" aria-hidden="true"><span>in</span><span class="social-github">●</span><span class="social-mail">&#9993;</span></div></div>
+          </article>
+          <article class="team-card" data-team-card>
+            <div class="team-portrait portrait-sophia" role="img" aria-label="Illustrated portrait of Sophia Garcia"><svg viewBox="0 0 220 260" aria-hidden="true"><path class="portrait-hair-back" d="M43 133c-11-66 9-111 67-112 63-2 82 49 68 121l-10 80H52z"/><path class="portrait-body" d="M8 260c5-54 29-79 66-88l36 18 37-18c37 9 60 34 65 88z"/><path class="portrait-neck" d="M87 154h46v43l-23 17-23-17z"/><ellipse class="portrait-skin" cx="110" cy="112" rx="45" ry="58"/><path class="portrait-hair-front" d="M65 106c-6-47 14-83 49-84 37-1 57 29 45 75-11-8-19-20-22-35-20 17-43 24-72 24z"/><path class="portrait-detail" d="M91 116h2m34 0h2m-20 8-3 12h8m-13 13c7 6 17 6 24 0"/></svg></div>
+            <div class="team-bio"><h2>Sophia Garcia</h2><p class="team-role">Software Engineer</p><p class="team-description">Crafting reliable<br> and scalable software.</p><div class="team-socials" aria-hidden="true"><span>in</span><span class="social-github">●</span><span class="social-mail">&#9993;</span></div></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section class="view" id="inspection-view">
       <header class="topbar">
         <div><p class="eyebrow">SOLDERA · INSPECTION WORKSPACE</p><h1>Soldering Quality Analyzer</h1><p>Inspect solder joints and learn what to look for.</p></div>
