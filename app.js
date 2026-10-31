@@ -449,6 +449,67 @@ document.querySelectorAll("[data-open-view]").forEach((button) => {
   });
 });
 
+const workflowSteps = document.querySelectorAll("[data-workflow-step]");
+const workflowSection = document.querySelector(".workflow-section");
+const prefersLessMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (workflowSteps.length && workflowSection && !prefersLessMotion) {
+  let workflowFrame = 0;
+
+  if ("IntersectionObserver" in window) {
+    document.body.classList.add("workflow-motion");
+    const workflowObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.14 });
+    workflowSteps.forEach((step) => workflowObserver.observe(step));
+  }
+
+  function updateWorkflowProgress() {
+    workflowFrame = 0;
+    const bounds = workflowSection.getBoundingClientRect();
+    const travel = Math.max(1, window.innerHeight + bounds.height);
+    const progress = Math.max(0, Math.min(1, (window.innerHeight - bounds.top) / travel));
+    const activeIndex = Math.min(workflowSteps.length - 1, Math.floor(progress * workflowSteps.length));
+    workflowSection.style.setProperty("--workflow-progress", progress.toFixed(3));
+    workflowSection.style.setProperty("--workflow-glow-x", `${30 + progress * 40}%`);
+
+    workflowSteps.forEach((step, index) => {
+      step.classList.toggle("is-current", index === activeIndex);
+      step.classList.toggle("is-complete", index < activeIndex);
+    });
+  }
+
+  function requestWorkflowProgress() {
+    if (workflowFrame) return;
+    workflowFrame = window.requestAnimationFrame(updateWorkflowProgress);
+  }
+
+  window.addEventListener("scroll", requestWorkflowProgress, { passive: true });
+  window.addEventListener("resize", requestWorkflowProgress);
+  requestWorkflowProgress();
+
+  if (window.matchMedia("(pointer: fine)").matches) {
+    workflowSteps.forEach((step) => {
+      const visual = step.querySelector(".workflow-visual");
+      if (!visual) return;
+      visual.addEventListener("pointermove", (event) => {
+        const bounds = visual.getBoundingClientRect();
+        const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+        const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+        visual.style.setProperty("--tilt-x", `${-y * 3}deg`);
+        visual.style.setProperty("--tilt-y", `${x * 3}deg`);
+      });
+      visual.addEventListener("pointerleave", () => {
+        visual.style.setProperty("--tilt-x", "0deg");
+        visual.style.setProperty("--tilt-y", "0deg");
+      });
+    });
+  }
+}
+
 const landingHero = document.querySelector(".landing-hero");
 if (landingHero && window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches) {
   landingHero.addEventListener("pointermove", (event) => {
@@ -482,3 +543,348 @@ $("box-width").addEventListener("input", (event) => {
 });
 
 $("save-settings").addEventListener("click", saveSettings);
+
+/* ---------- Soldering iron cursor (minimal, monochrome) ----------
+   default  -> outline soldering iron
+   hover    -> tip fills in + thin ring pulse + small wiggle
+              (buttons, links, inputs, dropzone)
+   click    -> dab + colored sparks
+   hold     -> press and hold anywhere (not on buttons), then drag to draw a fading spark trail
+   The tip of the iron is the pointer hotspot.
+   Only runs on devices with a mouse/trackpad. */
+(function initSolderCursor() {
+  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
+  const HOT_SELECTOR = [
+    "a[href]",
+    "button:not(:disabled)",
+    "[role='button']",
+    "select",
+    "label[for]",
+    "summary",
+    "input[type='range']",
+    "input[type='checkbox']",
+    ".dropzone",
+    ".choose-button"
+  ].join(",");
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const cursor = document.createElement("div");
+  cursor.className = "solder-cursor";
+  cursor.setAttribute("aria-hidden", "true");
+  cursor.innerHTML = `
+    <div class="sc-body">
+      <svg class="sc-svg" viewBox="0 0 120 120" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(6 114) rotate(-40)">
+          <circle class="sc-ring" cx="0" cy="0" r="14"/>
+          <path class="sc-tip" d="M0,0 L4,-2.8 L20,-4.2 V4.2 L4,2.8 Z"/>
+          <path class="sc-sleeve" d="M20,-5.5 H46 V5.5 H20 Z"/>
+          <path class="sc-collar" d="M46,-10 H52 V10 H46 Z"/>
+          <path class="sc-grip" d="M52,-8 H91 Q99,-8 99,0 Q99,8 91,8 H52 Z"/>
+        </g>
+      </svg>
+    </div>`;
+  document.body.append(cursor);
+  document.documentElement.classList.add("solder-cursor-on");
+
+  let x = -100;
+  let y = -100;
+  let frame = 0;
+  let visible = false;
+  let dabTimer = 0;
+
+  function paint() {
+    frame = 0;
+    cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  }
+
+  function move(event) {
+    x = event.clientX;
+    y = event.clientY;
+    if (!visible) {
+      visible = true;
+      cursor.classList.add("is-visible");
+    }
+    if (!frame) frame = window.requestAnimationFrame(paint);
+  }
+
+  function spawn(className, px, py, vars, life) {
+    const node = document.createElement("span");
+    node.className = className;
+    node.style.left = `${px}px`;
+    node.style.top = `${py}px`;
+    Object.entries(vars).forEach(([key, value]) => node.style.setProperty(key, value));
+    document.body.append(node);
+    window.setTimeout(() => node.remove(), life);
+  }
+
+  function spawnSparks(px, py) {
+    spawn("solder-flash", px, py, {}, 450);
+    spawn("solder-blob", px, py, {}, 750);
+
+    // colored sparks fanning upward from the contact point
+    const colors = ["#fff3c4", "#ffd36b", "#ffb43c", "#ff8a3d"];
+    const count = reduced ? 5 : 12;
+    const spread = 160; // degrees
+    for (let i = 0; i < count; i += 1) {
+      const angle = -spread / 2 + (spread / (count - 1)) * i + (Math.random() * 10 - 5);
+      spawn("solder-spark", px, py, {
+        "--a": `${angle}deg`,
+        "--d": `${16 + Math.random() * 20}px`,
+        "--len": `${6 + Math.random() * 6}px`,
+        "--dur": `${380 + Math.random() * 220}ms`,
+        "--c": colors[Math.floor(Math.random() * colors.length)]
+      }, 700);
+    }
+  }
+
+  document.addEventListener("pointermove", move, { passive: true });
+  document.addEventListener("dragover", move);
+
+  document.addEventListener("pointerover", (event) => {
+    const target = event.target;
+    const hot = !!(target && target.closest && target.closest(HOT_SELECTOR));
+    cursor.classList.toggle("is-hot", hot);
+  });
+
+  document.documentElement.addEventListener("mouseleave", () => {
+    visible = false;
+    cursor.classList.remove("is-visible", "is-hot");
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (event.pointerType && event.pointerType !== "mouse") return;
+    x = event.clientX;
+    y = event.clientY;
+    paint();
+
+    cursor.classList.remove("is-soldering");
+    void cursor.offsetWidth; // restart the dab animation on rapid clicks
+    cursor.classList.add("is-soldering");
+    window.clearTimeout(dabTimer);
+    dabTimer = window.setTimeout(() => cursor.classList.remove("is-soldering"), 500);
+
+    spawnSparks(event.clientX, event.clientY);
+  });
+
+  /* ----- Hold-to-draw -----
+     Press and hold anywhere (except buttons, links and inputs), then drag
+     to draw a glowing spark trail. The trail fades away on its own. */
+  const NO_DRAW_SELECTOR = `${HOT_SELECTOR}, input, textarea, [contenteditable='true']`;
+  const HOLD_MS = 350;        // how long to hold before drawing starts
+  const HOLD_TOLERANCE = 10;  // px of movement allowed while holding
+  const TRAIL_LIFE = reduced ? 500 : 1000; // ms before the trail disappears
+  const EMBER_COLORS = ["255,243,196", "255,211,107", "255,180,60", "255,138,61"];
+  const LAYERS = [
+    { color: "255,138,61", alpha: 0.32, width: 9 },   // soft outer glow
+    { color: "255,190,70", alpha: 0.85, width: 4 },   // amber body
+    { color: "255,246,205", alpha: 1, width: 1.6 }    // hot core
+  ];
+
+  const trail = document.createElement("canvas");
+  trail.className = "solder-trail";
+  trail.setAttribute("aria-hidden", "true");
+  document.body.append(trail);
+  const tctx = trail.getContext("2d");
+
+  function sizeTrail() {
+    const ratio = window.devicePixelRatio || 1;
+    trail.width = Math.round(window.innerWidth * ratio);
+    trail.height = Math.round(window.innerHeight * ratio);
+    tctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+  sizeTrail();
+  window.addEventListener("resize", sizeTrail);
+
+  const points = [];
+  const embers = [];
+  let drawing = false;
+  let needBreak = true;
+  let holdTimer = 0;
+  let pressX = 0;
+  let pressY = 0;
+  let trailFrame = 0;
+  let lastTick = 0;
+
+  function addPoint(px, py, now) {
+    const last = points[points.length - 1];
+    if (last && !needBreak) {
+      const dx = px - last.x;
+      const dy = py - last.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 1) return;
+      // fill gaps on fast strokes so the line stays smooth
+      const steps = Math.floor(dist / 5);
+      for (let s = 1; s <= steps; s += 1) {
+        const f = s / (steps + 1);
+        points.push({ x: last.x + dx * f, y: last.y + dy * f, t: now, brk: false });
+      }
+    }
+    points.push({ x: px, y: py, t: now, brk: needBreak });
+    needBreak = false;
+  }
+
+  function emitEmbers(px, py, now) {
+    if (reduced) return;
+    const count = Math.random() < 0.6 ? 1 : 2;
+    for (let i = 0; i < count; i += 1) {
+      embers.push({
+        x: px,
+        y: py,
+        vx: (Math.random() - 0.5) * 70,
+        vy: -20 - Math.random() * 55,
+        born: now,
+        life: 350 + Math.random() * 350,
+        size: 1 + Math.random() * 1.6,
+        color: EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)]
+      });
+    }
+  }
+
+  function requestTrail() {
+    if (!trailFrame) trailFrame = window.requestAnimationFrame(tick);
+  }
+
+  function tick(now) {
+    trailFrame = 0;
+    const dt = Math.min(0.05, (now - (lastTick || now)) / 1000);
+    lastTick = now;
+
+    while (points.length && now - points[0].t > TRAIL_LIFE) points.shift();
+    for (let i = embers.length - 1; i >= 0; i -= 1) {
+      const ember = embers[i];
+      if (now - ember.born > ember.life) {
+        embers.splice(i, 1);
+        continue;
+      }
+      ember.x += ember.vx * dt;
+      ember.y += ember.vy * dt;
+      ember.vy += 170 * dt; // gravity
+    }
+
+    tctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    tctx.lineCap = "round";
+    tctx.lineJoin = "round";
+
+    // draw each glow layer; segments are grouped by age so the stroke stays smooth
+    LAYERS.forEach((layer) => {
+      let bucket = -1;
+      let open = false;
+      for (let i = 1; i < points.length; i += 1) {
+        const p0 = points[i - 1];
+        const p1 = points[i];
+        const k = 1 - (now - p1.t) / TRAIL_LIFE;
+        if (p1.brk || k <= 0) {
+          if (open) tctx.stroke();
+          open = false;
+          continue;
+        }
+        const b = Math.ceil(k * 8);
+        if (!open || b !== bucket) {
+          if (open) tctx.stroke();
+          bucket = b;
+          const kb = b / 8;
+          tctx.strokeStyle = `rgba(${layer.color},${(layer.alpha * kb).toFixed(3)})`;
+          tctx.lineWidth = Math.max(0.4, layer.width * (0.35 + 0.65 * kb));
+          tctx.beginPath();
+          tctx.moveTo(p0.x, p0.y);
+          open = true;
+        }
+        tctx.lineTo(p1.x, p1.y);
+      }
+      if (open) tctx.stroke();
+    });
+
+    embers.forEach((ember) => {
+      const a = 1 - (now - ember.born) / ember.life;
+      tctx.fillStyle = `rgba(${ember.color},${(a * 0.28).toFixed(3)})`;
+      tctx.beginPath();
+      tctx.arc(ember.x, ember.y, ember.size * 3, 0, Math.PI * 2);
+      tctx.fill();
+      tctx.fillStyle = `rgba(${ember.color},${a.toFixed(3)})`;
+      tctx.beginPath();
+      tctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
+      tctx.fill();
+    });
+
+    // glowing head at the iron tip while drawing
+    if (drawing) {
+      tctx.fillStyle = "rgba(255,138,61,0.35)";
+      tctx.beginPath();
+      tctx.arc(x, y, 7, 0, Math.PI * 2);
+      tctx.fill();
+      tctx.fillStyle = "rgba(255,246,205,1)";
+      tctx.beginPath();
+      tctx.arc(x, y, 2.4, 0, Math.PI * 2);
+      tctx.fill();
+    }
+
+    if (drawing || points.length || embers.length) {
+      trailFrame = window.requestAnimationFrame(tick);
+    } else {
+      tctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      lastTick = 0;
+    }
+  }
+
+  function startDrawing() {
+    holdTimer = 0;
+    drawing = true;
+    needBreak = true;
+    document.documentElement.classList.add("solder-drawing");
+    cursor.classList.add("is-drawing");
+    const selection = window.getSelection && window.getSelection();
+    if (selection) selection.removeAllRanges();
+    spawn("solder-flash", x, y, {}, 450);
+    addPoint(x, y, performance.now());
+    requestTrail();
+  }
+
+  function stopDrawing() {
+    window.clearTimeout(holdTimer);
+    holdTimer = 0;
+    if (!drawing) return;
+    drawing = false;
+    needBreak = true;
+    document.documentElement.classList.remove("solder-drawing");
+    cursor.classList.remove("is-drawing");
+    requestTrail(); // keep fading what is left
+  }
+
+  document.addEventListener("pointerdown", (event) => {
+    if (event.pointerType && event.pointerType !== "mouse") return;
+    if (event.button !== 0) return;
+    window.clearTimeout(holdTimer);
+    holdTimer = 0;
+    const target = event.target;
+    if (target && target.closest && target.closest(NO_DRAW_SELECTOR)) return;
+    pressX = event.clientX;
+    pressY = event.clientY;
+    holdTimer = window.setTimeout(startDrawing, HOLD_MS);
+  });
+
+  document.addEventListener("pointermove", (event) => {
+    // moving before the hold time is a normal drag or text selection, not drawing
+    if (holdTimer && Math.hypot(event.clientX - pressX, event.clientY - pressY) > HOLD_TOLERANCE) {
+      window.clearTimeout(holdTimer);
+      holdTimer = 0;
+    }
+    if (!drawing) return;
+
+    const selection = window.getSelection && window.getSelection();
+    if (selection && selection.rangeCount) selection.removeAllRanges();
+
+    const now = performance.now();
+    const samples = event.getCoalescedEvents ? event.getCoalescedEvents() : [];
+    (samples.length ? samples : [event]).forEach((sample) => addPoint(sample.clientX, sample.clientY, now));
+    emitEmbers(event.clientX, event.clientY, now);
+    requestTrail();
+  }, { passive: true });
+
+  window.addEventListener("pointerup", stopDrawing);
+  window.addEventListener("pointercancel", stopDrawing);
+  window.addEventListener("blur", stopDrawing);
+  document.addEventListener("selectstart", (event) => { if (drawing) event.preventDefault(); });
+  document.addEventListener("dragstart", (event) => event.preventDefault());
+})();

@@ -72,7 +72,6 @@
         <path class="spark" d="M118,172 V186 M111,179 H125 M113,174 L123,184 M123,174 L113,184" stroke-width="2.2"/>
       </svg>
       <div class="splash-logo-frame"><img class="splash-logo" src="/images/assets/soldera.png" alt="SOLDERA"></div>
-      <div class="splash-tagline">PRECISION IN EVERY JOINT.</div>
     </div>
   </div>
 
@@ -103,9 +102,47 @@
           </div>
           <a class="scroll-cue" href="#about" data-scroll-to="about" aria-label="Scroll to About"><span class="mouse-icon"></span>Scroll Down<span class="scroll-arrow">&#8595;</span></a>
         </div>
-      <section class="landing-about" id="about">
-        <div><p class="about-kicker">MADE FOR BETTER BUILDS</p><h2>Practice with confidence.<br>Improve every joint.</h2><p>Use image based inspection to review your soldering work, learn visual quality cues, and return to past results as your skills grow.</p></div>
-        <div class="about-points"><article><span>01</span><b>Upload a board photo</b><small>Start with a clear image of your solder joints.</small></article><article><span>02</span><b>Review model findings</b><small>See detected classes and confidence in context.</small></article><article><span>03</span><b>Build your technique</b><small>Use the learning guide to practice safer, cleaner soldering.</small></article></div>
+      <section class="workflow-section" id="about" aria-labelledby="workflow-title">
+        <div class="workflow-heading">
+          <p class="workflow-eyebrow"><span>HOW IT WORKS</span><i aria-hidden="true"></i></p>
+          <h2 id="workflow-title">From board to better solder.</h2>
+          <p class="workflow-intro">A clear, repeatable workflow for inspecting PCB solder joints —<br class="desktop-break"> from image upload to actionable findings.</p>
+        </div>
+        <div class="workflow-grid">
+          <article class="workflow-step" data-workflow-step>
+            <div class="workflow-step-heading"><span class="workflow-number">01</span><h3>Capture</h3><span class="workflow-rule" aria-hidden="true"></span></div>
+            <div class="workflow-visual capture-visual"><img src="/images/good-solder.png" alt="Close-up photo of solder joints on a circuit board"><span class="capture-focus" aria-hidden="true"></span><span class="visual-caption"><i aria-hidden="true"></i> SHARP FOCUS</span></div>
+            <h4>Take a clear photo</h4>
+            <p>Use a well-lit, sharp image of your PCB. Keep the board steady and in focus for the best results.</p>
+            <div class="capture-tip"><span aria-hidden="true">☼</span> Good lighting <b>+</b> sharp focus <b>=</b> clearer results</div>
+          </article>
+          <article class="workflow-step" data-workflow-step>
+            <div class="workflow-step-heading"><span class="workflow-number">02</span><h3>Upload</h3><span class="workflow-rule" aria-hidden="true"></span></div>
+            <div class="workflow-visual upload-visual" aria-hidden="true">
+              <div class="upload-drop-art"><span class="upload-cloud">↑</span><b>Drop your image here</b><small>or click to browse</small></div>
+              <label>Inspection type <span>Solder joint <b>⌄</b></span></label>
+              <label>Quality level <span>Standard <b>⌄</b></span></label>
+            </div>
+            <h4>Add your image &amp; settings</h4>
+            <p>Upload your photo and choose the inspection settings that fit your project.</p>
+          </article>
+          <article class="workflow-step" data-workflow-step>
+            <div class="workflow-step-heading"><span class="workflow-number workflow-number-active">03</span><h3>Inspect</h3><span class="workflow-rule workflow-rule-active" aria-hidden="true"></span></div>
+            <div class="workflow-visual inspect-visual"><img src="/images/bad-solder.png" alt="Example solder joint shown with a review marker"><span class="inspect-ring" aria-hidden="true"></span><span class="inspect-label"><i aria-hidden="true">!</i> Review joint</span><span class="inspect-dot" aria-hidden="true"></span></div>
+            <h4>AI inspects your board</h4>
+            <p>The model highlights solder joints for review, helping you spot areas that may need a closer look.</p>
+          </article>
+          <article class="workflow-step" data-workflow-step>
+            <div class="workflow-step-heading"><span class="workflow-number">04</span><h3>Review</h3><span class="workflow-rule" aria-hidden="true"></span></div>
+            <div class="workflow-visual report-visual" aria-hidden="true">
+              <div class="report-top"><strong>SOLDERA</strong><span><i></i> Completed</span><small>INSPECTION REPORT</small></div>
+              <div class="report-summary"><img src="/images/howto.png" alt=""><div><p><b class="report-alert">!</b> 1 flagged joint</p><p><b class="report-check">✓</b> 8 other joints</p><p><b class="report-check">✓</b> Surface check: OK</p></div></div>
+              <div class="report-findings"><b>Findings</b><p><i class="report-alert">!</i> Review flagged area <span>J3</span></p><p><i class="report-check">✓</i> Other joints <span>J7</span></p><p><i class="report-check">✓</i> Other joints <span>J12</span></p></div>
+            </div>
+            <h4>Get your results</h4>
+            <p>Review flagged areas, understand each finding, and save your results for your records.</p>
+          </article>
+        </div>
       </section>
     </section>
     <section class="view" id="inspection-view">
