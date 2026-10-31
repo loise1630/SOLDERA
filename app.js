@@ -524,6 +524,28 @@ if (teamCards.length && "IntersectionObserver" in window && !window.matchMedia("
   }, { threshold: 0.12 });
   teamCards.forEach((card) => teamObserver.observe(card));
 }
+const revealGroups = document.querySelectorAll("[data-scroll-reveal-group]");
+if (revealGroups.length && "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  document.body.classList.add("scroll-reveal-ready");
+  const revealTargets = new Map();
+  revealGroups.forEach((group) => {
+    const targets = Array.from(group.children);
+    revealTargets.set(group, targets);
+    targets.forEach((target, index) => {
+      target.classList.add("scroll-reveal-item");
+      target.style.setProperty("--reveal-delay", `${index * 0.08}s`);
+    });
+  });
+
+  const revealObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      revealTargets.get(entry.target)?.forEach((target) => target.classList.add("is-scroll-revealed"));
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.1 });
+  revealGroups.forEach((group) => revealObserver.observe(group));
+}
 const landingHero = document.querySelector(".landing-hero");
 if (landingHero && window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches) {
   landingHero.addEventListener("pointermove", (event) => {
