@@ -310,7 +310,9 @@ html { scroll-behavior: smooth; }
 .site-header {
   position: sticky; top: 0; z-index: 50; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   min-height: 76px; padding: 0 clamp(24px, 6vw, 105px); color: #15191d;
-  background: #f5f6f7c9; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid transparent; background: transparent;
+  box-shadow: none;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
 }
 .site-brand { display: flex; align-items: center; width: max-content; }
 .site-brand img { display: block; width: 205px; max-height: 52px; object-fit: contain; }
@@ -659,7 +661,7 @@ html[data-theme="night"] {
   background: #0d1217;
 }
 html[data-theme="night"] body { color: var(--ink); background: #0d1217; }
-html[data-theme="night"] .site-header { color: #edf2f5; background: #10151bea; border-bottom: 1px solid #ffffff12; }
+html[data-theme="night"] .site-header { color: #edf2f5; background: transparent; border-bottom-color: transparent; box-shadow: none; }
 html[data-theme="night"] .site-brand img,
 html[data-theme="night"] .splash-logo,
 html[data-theme="night"] .logo-flight-frame img { filter: brightness(0) invert(1); }
@@ -849,4 +851,58 @@ html[data-theme="night"] .team-socials > span { color: #e8edf0; background: #303
   .header-actions { grid-column: 2; grid-row: 1; }
   .theme-toggle { flex-basis: 36px; width: 36px; height: 36px; }
   .header-demo { padding-inline: 12px; font-size: 11px; }
+}
+
+/* Keep the full soldering scene in the opening viewport; features follow below. */
+.landing-hero {
+  height: 100svh;
+  min-height: 100svh;
+  background-size: cover;
+}
+.landing-features { scroll-margin-top: 24px; }
+@media (max-width: 700px) {
+  .landing-hero {
+    height: 100svh;
+    min-height: 100svh;
+    background-size: cover;
+  }
+}
+
+/* Centered SOLDERA introduction between the hero and feature row. */
+.about-section {
+  scroll-margin-top: 80px;
+  padding: clamp(76px, 9vw, 124px) clamp(22px, 6vw, 96px) clamp(70px, 8vw, 106px);
+  border-top: 1px solid #dfe4e8;
+  color: #17212a;
+  text-align: center;
+  background: linear-gradient(145deg, #f7f9fa, #edf1f4);
+}
+.about-inner { width: min(1120px, 100%); margin-inline: auto; }
+.about-eyebrow { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 20px; color: #66727d; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
+.about-eyebrow span { width: 7px; height: 7px; border-radius: 50%; background: #54a99f; box-shadow: 0 0 0 4px #54a99f20; }
+.about-section h2 { margin: 0; color: #11171c; font-size: clamp(38px, 5vw, 68px); font-weight: 720; letter-spacing: -.065em; line-height: .99; }
+.about-section h2 span { color: #586571; }
+.about-description { max-width: 820px; margin: 25px auto 0; color: #5c6873; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.7; letter-spacing: -.015em; }
+.about-highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: clamp(42px, 5vw, 64px); text-align: left; }
+.about-highlight { min-height: 170px; padding: 22px 22px 20px; border: 1px solid #dce2e7; border-radius: 16px; background: #ffffffa3; transition: transform .22s ease, border-color .22s ease, background .22s ease; }
+.about-highlight:hover { transform: translateY(-3px); border-color: #b8c9cf; background: #fff; }
+.about-number { color: #4c938b; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+.about-highlight h3 { margin: 22px 0 8px; color: #17212a; font-size: 18px; font-weight: 650; letter-spacing: -.035em; }
+.about-highlight p { max-width: 290px; margin: 0; color: #6b7782; font-size: 14px; line-height: 1.55; }
+html[data-theme="night"] .about-section { border-color: #2d3943; color: #edf2f5; background: linear-gradient(145deg, #12191f, #182129); }
+html[data-theme="night"] .about-eyebrow { color: #acb8c1; }
+html[data-theme="night"] .about-section h2 { color: #f0f3f5; }
+html[data-theme="night"] .about-section h2 span { color: #abb8c1; }
+html[data-theme="night"] .about-description { color: #adb9c2; }
+html[data-theme="night"] .about-highlight { border-color: #33414b; background: #1d272f; }
+html[data-theme="night"] .about-highlight:hover { border-color: #50616d; background: #222e37; }
+html[data-theme="night"] .about-highlight h3 { color: #eaf0f3; }
+html[data-theme="night"] .about-highlight p { color: #aab7c0; }
+@media (max-width: 700px) {
+  .about-section { padding-inline: 22px; }
+  .about-section h2 { font-size: clamp(37px, 10vw, 54px); }
+  .about-description { margin-top: 20px; font-size: 16px; line-height: 1.62; }
+  .about-highlights { grid-template-columns: 1fr; gap: 10px; margin-top: 34px; }
+  .about-highlight { min-height: 0; padding: 19px; }
+  .about-highlight h3 { margin-top: 12px; }
 }

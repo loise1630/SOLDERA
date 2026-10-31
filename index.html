@@ -83,7 +83,7 @@
       <button class="nav-link" data-view="inspection">Upload</button>
       <button class="nav-link" data-view="history">History</button>
       <button class="nav-link" data-view="learn">Learn</button>
-      <button class="nav-link" data-view="about">About</button>
+      <button class="nav-link" data-view="about" data-section-link="about-section">About</button>
       <button class="nav-link" data-view="settings">Settings</button>
     </nav>
     <div class="header-actions">
@@ -91,7 +91,7 @@
         <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.6 8.6 0 0 1 8.6 3.8 8.7 8.7 0 1 0 20.2 15.4Z"/></svg>
         <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
       </button>
-      <button class="header-demo" data-open-view="about">Meet the team <span aria-hidden="true">&#8594;</span></button>
+      <button class="header-demo" data-open-view="about" data-force-view="true">Meet the team <span aria-hidden="true">&#8594;</span></button>
     </div>
   </header>
 
@@ -114,8 +114,32 @@
             <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v11H3z"/><path d="M3 7V5h7l2 2"/></svg>Project history</span>
           </div>
         </div>
-        <a class="scroll-cue" href="#features" data-scroll-to="features" aria-label="Scroll to features"><span class="mouse-icon"></span>Scroll Down<span class="scroll-arrow">&#8595;</span></a>
+        <a class="scroll-cue" href="#about-section" data-scroll-to="about-section" aria-label="Scroll to the About section"><span class="mouse-icon"></span>Discover SOLDERA<span class="scroll-arrow">&#8595;</span></a>
       </div>
+      <section class="about-section" id="about-section" aria-labelledby="about-title">
+        <div class="about-inner">
+          <p class="about-eyebrow"><span aria-hidden="true"></span> ABOUT SOLDERA</p>
+          <h2 id="about-title">Practice with purpose.<br><span>Improve with feedback.</span></h2>
+          <p class="about-description">SOLDERA is an intelligent soldering training system that uses wearable sensors and machine learning to assess soldering techniques and monitor safety. Its website version features PCB image uploading and photo capture to help users evaluate their soldering work and improve their skills.</p>
+          <div class="about-highlights">
+            <article class="about-highlight">
+              <span class="about-number">01</span>
+              <h3>Wearable sensing</h3>
+              <p>Capture practical soldering activity through wearable sensors.</p>
+            </article>
+            <article class="about-highlight">
+              <span class="about-number">02</span>
+              <h3>Technique &amp; safety</h3>
+              <p>Use machine learning to assess technique and monitor safety.</p>
+            </article>
+            <article class="about-highlight">
+              <span class="about-number">03</span>
+              <h3>Photo based review</h3>
+              <p>Upload a PCB image or capture a photo to review soldering work.</p>
+            </article>
+          </div>
+        </div>
+      </section>
       <section class="landing-features" id="features" aria-labelledby="features-title">
         <h2 id="features-title">Everything you need<br>for better solder quality</h2>
         <div class="landing-feature-grid">

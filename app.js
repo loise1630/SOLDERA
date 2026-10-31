@@ -447,6 +447,12 @@ function renderHistory() {
 /* ---------- Workspace navigation ---------- */
 document.querySelectorAll(".nav-link").forEach((button) => {
   button.addEventListener("click", () => {
+    const homeView = $("home-view");
+    if (button.dataset.sectionLink && homeView?.classList.contains("active") && button.dataset.forceView !== "true") {
+      document.getElementById(button.dataset.sectionLink)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
     document.querySelectorAll(".nav-link").forEach((item) => {
       item.classList.toggle("active", item === button);
     });
@@ -460,6 +466,23 @@ document.querySelectorAll(".nav-link").forEach((button) => {
   });
 });
 
+function updateLandingSectionNav() {
+  const homeView = $("home-view");
+  const aboutSection = $("about-section");
+  if (!homeView?.classList.contains("active") || !aboutSection) return;
+
+  const bounds = aboutSection.getBoundingClientRect();
+  const marker = window.innerHeight * 0.5;
+  const aboutIsActive = bounds.top <= marker && bounds.bottom > marker;
+  document.querySelectorAll(".nav-link[data-view='home'], .nav-link[data-section-link='about-section']").forEach((link) => {
+    link.classList.toggle("active", link.dataset.sectionLink === "about-section" ? aboutIsActive : !aboutIsActive);
+  });
+}
+
+window.addEventListener("scroll", updateLandingSectionNav, { passive: true });
+window.addEventListener("resize", updateLandingSectionNav, { passive: true });
+updateLandingSectionNav();
+
 document.querySelectorAll("[data-scroll-to]").forEach((control) => {
   control.addEventListener("click", (event) => {
     event.preventDefault();
@@ -469,7 +492,11 @@ document.querySelectorAll("[data-scroll-to]").forEach((control) => {
 
 document.querySelectorAll("[data-open-view]").forEach((button) => {
   button.addEventListener("click", () => {
-    document.querySelector(`.nav-link[data-view="${button.dataset.openView}"]`)?.click();
+    const navigationButton = document.querySelector(`.nav-link[data-view="${button.dataset.openView}"]`);
+    if (!navigationButton) return;
+    if (button.dataset.forceView === "true") navigationButton.dataset.forceView = "true";
+    navigationButton.click();
+    delete navigationButton.dataset.forceView;
   });
 });
 
