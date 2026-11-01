@@ -140,6 +140,32 @@
           </div>
         </div>
       </section>
+      <section class="howto-journey" id="howto-journey" aria-label="How SOLDERA works: four steps">
+        <div class="journey-pin">
+          <header class="journey-anchor"><span class="journey-kicker">THE PROCESS</span><h2>How It<br>Works<span>.</span></h2><div class="journey-progress"><span class="journey-progress-fill"></span></div><p><span class="journey-current">01</span><span class="journey-divider">/</span>04 <span class="journey-scroll-hint">SCROLL TO TRAVEL&nbsp; ↓</span></p></header>
+          <div class="journey-world">
+            <div class="journey-track">
+              <article class="journey-scene scene-prep" data-journey-scene>
+                <div class="scene-copy"><span class="scene-index">01 / 04</span><h3>Take or Upload a PCB Photo</h3><p>Upload a clear photo or take one now. Good lighting and focus help SOLDERA inspect the solder joints.</p><span class="scene-caption">01 — ADD YOUR PHOTO</span></div>
+                <div class="scene-art flow-upload-art"><div class="flow-upload-card"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="20" rx="2"/><circle cx="11" cy="13" r="2"/><path d="m5 23 7-7 5 5 5-6 6 6"/></svg><b>Choose a photo</b><span>or take one with your camera</span><div class="flow-photo-preview"><i></i><i></i><i></i><b></b></div></div></div>
+              </article>
+              <article class="journey-scene scene-heat" data-journey-scene>
+                <div class="scene-copy"><span class="scene-index">02 / 04</span><h3>Press Analyze Image</h3><p>Start SOLDERA’s automated review of the solder joints in your PCB photo.</p><span class="scene-caption">02 — START ANALYSIS</span></div>
+                <div class="scene-art flow-analyze-art"><div class="flow-board-preview"><span></span><i></i><i></i><i></i><i></i><b></b></div><div class="flow-scan-box"></div><div class="flow-analyze-button">✳ &nbsp; Analyze Image</div></div>
+              </article>
+              <article class="journey-scene scene-feed" data-journey-scene>
+                <div class="scene-copy"><span class="scene-index">03 / 04</span><h3>Wait for Your Results</h3><p>SOLDERA processes the image and evaluates the solder joints it detects.</p><span class="scene-caption">03 — ANALYSIS IN PROGRESS</span></div>
+                <div class="scene-art flow-wait-art"><div class="flow-status-card"><span class="flow-status-kicker">IMAGE ANALYSIS</span><i class="flow-spinner"></i><b>Analyzing your PCB</b><span>Checking solder joints…</span><div class="flow-progress"><i></i></div></div></div>
+              </article>
+              <article class="journey-scene scene-check" data-journey-scene>
+                <div class="scene-copy"><span class="scene-index">04 / 04</span><h3>Review Your Results</h3><p>Explore the inspection feedback to see what went well and what you can improve.</p><span class="scene-caption">04 — LEARN FROM THE FEEDBACK</span></div>
+                <div class="scene-art flow-result-art"><div class="flow-inspection-card"><span class="flow-status-kicker">INSPECTION COMPLETE</span><div class="flow-score"><b>86</b><small>/100</small></div><strong>Good progress</strong><span>Review the joint-by-joint feedback.</span><div class="flow-result-bars"><i></i><i></i><i></i></div></div></div>
+              </article>
+            </div>
+          </div>
+
+        </div>
+      </section>
       <section class="landing-features" id="features" aria-labelledby="features-title">
         <h2 id="features-title">Everything you need<br>for better solder quality</h2>
         <div class="landing-feature-grid">
@@ -194,53 +220,70 @@
       </div>
     </section>
 
-    <section class="view" id="inspection-view">
-      <header class="topbar">
-        <div><p class="eyebrow">SOLDERA · INSPECTION WORKSPACE</p><h1>Soldering Quality Analyzer</h1><p>Inspect solder joints and learn what to look for.</p></div>
-        <div class="ready-chip"><span></span><b>Model findings only</b></div>
-      </header>
+    <section class="view" id="inspection-view" aria-label="Upload and inspect">
+      <div class="ux" id="ux-root" data-state="idle">
 
-      <div class="workspace">
-        <section class="panel upload-panel">
-          <header class="panel-heading"><span class="section-mark">01</span><div><h2>Inspect a solder joint</h2><p>Upload a clear image to get model detections.</p></div></header>
-          <label class="dropzone" id="dropzone" for="file-input">
+        <div class="ux-copy">
+          <p class="ux-kicker"><span aria-hidden="true">&#10022;</span> UPLOAD PCB</p>
+          <h1>Show us<br>the joint.</h1>
+          <p class="ux-desc">Drop a close, well-lit photo of your board. SOLDERA reports what the model detects. It does not give a verified grade.</p>
+
+          <div class="ux-actions">
+            <button id="analyze-button" class="analyze-button" disabled><span>✧</span> Analyze image</button>
+            <button type="button" class="ux-more" id="ux-more" aria-expanded="false">View findings</button>
+          </div>
+
+          <div class="ux-samples" aria-label="Sample images">
+            <span class="ux-side-label">No board? Try one</span>
+            <button type="button" class="ux-chip" data-sample="test_image3.jpg">Multi-joint header</button>
+            <button type="button" class="ux-chip" data-sample="test_image2.jpg">Solder spike board</button>
+            <button type="button" class="ux-chip" data-sample="test_image.jpg">High-density PCB</button>
+            <select id="sample-select" class="ux-sr" aria-hidden="true" tabindex="-1">
+              <option value="">Choose a sample</option>
+              <option value="test_image3.jpg">Sample 1</option>
+              <option value="test_image2.jpg">Sample 2</option>
+              <option value="test_image.jpg">Sample 3</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ux-stagewrap" id="ux-center">
+          <label class="dropzone ux-stage" id="dropzone" for="file-input">
             <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+            <span class="ux-tag" id="ux-tag">Waiting for an image</span>
             <div class="drop-content" id="drop-content">
-              <svg class="cloud-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 34h-2a9 9 0 0 1-1-18 14 14 0 0 1 27-2 10 10 0 0 1-1 20h-3M24 41V23m-7 7 7-7 7 7"/></svg>
-              <strong>Drop your image here</strong><span class="or">or browse your files</span>
-              <span class="choose-button">Choose image</span>
-              <small>JPG, PNG or WEBP · Up to 10 MB</small>
+              <span class="ux-pulse"><svg class="cloud-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 34h-2a9 9 0 0 1-1-18 14 14 0 0 1 27-2 10 10 0 0 1-1 20h-3M24 41V23m-7 7 7-7 7 7"/></svg></span>
+              <strong>Drop your image here</strong>
+              <span class="or">or click anywhere to browse · paste with Ctrl + V</span>
+              <small>JPG · PNG · WEBP · up to 10 MB</small>
             </div>
             <canvas id="preview" class="preview hidden" aria-label="Selected soldering image preview"></canvas>
             <span class="file-caption hidden" id="file-caption"></span>
+            <span class="ux-scan" aria-hidden="true"></span>
           </label>
-          <div class="upload-actions">
-            <div class="sample-picker"><label for="sample-select">Try a sample image</label><select id="sample-select"><option value="">Choose a sample</option><option value="test_image3.jpg">Sample 1 · Multi-joint header</option><option value="test_image2.jpg">Sample 2 · Solder spike board</option><option value="test_image.jpg">Sample 3 · High-density PCB</option></select></div>
-          </div>
-        </section>
-
-        <section class="panel results-panel">
-          <header class="panel-heading results-heading"><span class="section-mark">02</span><div><h2>Analysis results</h2><p id="result-subtitle">Choose an image to begin.</p></div></header>
-          <div class="metrics-grid">
-            <article class="metric good"><span class="metric-icon">✓</span><span class="metric-label">Good-class detections</span><strong id="good-count">0</strong></article>
-            <article class="metric defect"><span class="metric-icon">!</span><span class="metric-label">Known defect-class detections</span><strong id="defect-count">0</strong></article>
-            <article class="metric total"><span class="metric-icon">▦</span><span class="metric-label">Total detections</span><strong id="total-count">0</strong></article>
-            <article class="metric score"><span class="metric-icon">?</span><span class="metric-label">Board grade</span><strong id="quality-score">N/A</strong></article>
-          </div>
-          <button id="analyze-button" class="analyze-button" disabled><span>✧</span> Analyze image</button>
           <p id="error-message" class="error-message hidden" role="alert"></p>
-          <p class="caution-note"><b>Read results carefully.</b> Detections are model findings, not a verified board grade. No detections do not prove a board is defect-free.</p>
-          <div id="verdict" class="verdict hidden"></div>
-          <div id="details" class="details hidden"></div>
-          <p class="results-empty" id="results-empty">Your model detections will appear here.</p>
-        </section>
-      </div>
 
-      <section class="learn-intro">
-        <div class="learn-copy"><p class="eyebrow">THE BASICS</p><h2>Learn to recognize a reliable joint</h2><p>Good soldering creates a clean electrical and mechanical connection. Compare the examples below, then follow a simple through-hole technique.</p><button class="text-link" data-open-view="learn">Explore the soldering guide <span>→</span></button></div>
-        <div class="mini-visuals"><img src="/images/good-solder.png" alt="Close-up reference photo of soldered through-hole joints"><img src="/images/howto.png" alt="Reference photo showing solder joints on a printed circuit board"></div>
-      </section>
-      <a class="source-link" href="https://learn.sparkfun.com/tutorials/how-to-solder-through-hole-soldering" target="_blank" rel="noreferrer">Soldering basics adapted from SparkFun’s through-hole guide ↗</a>
+          <aside class="ux-drawer" id="ux-drawer" aria-label="Analysis details">
+            <button type="button" class="ux-close" id="ux-close" aria-label="Close findings">×</button>
+            <h2>Findings</h2>
+            <p id="result-subtitle" class="ux-sub">Choose an image to begin.</p>
+            <div id="verdict" class="verdict hidden"></div>
+            <div id="details" class="details hidden"></div>
+            <p class="results-empty" id="results-empty">Your model detections will appear here.</p>
+          </aside>
+        </div>
+
+        <footer class="ux-dock">
+          <div class="ux-stat ok"><strong id="good-count">0</strong><span>Good-class</span></div>
+          <i aria-hidden="true"></i>
+          <div class="ux-stat bad"><strong id="defect-count">0</strong><span>Known defect-class</span></div>
+          <i aria-hidden="true"></i>
+          <div class="ux-stat"><strong id="total-count">0</strong><span>Total detections</span></div>
+          <i aria-hidden="true"></i>
+          <div class="ux-stat"><strong id="quality-score">N/A</strong><span>Overall grade</span></div>
+          <p class="ux-note"><b>How it’s calculated:</b> Good-class ÷ (Good-class + known defect-class) × 100. It covers detected joints only; missed joints are not included. It is not a validated board grade.</p>
+        </footer>
+      </div>
     </section>
 
     <section class="view" id="learn-view">

@@ -289,11 +289,19 @@ $("analyze-button").addEventListener("click", async () => {
   }
 });
 
+function calculateOverallGrade(result) {
+  const good = Math.max(0, Number(result.good) || 0);
+  const defects = Math.max(0, Number(result.defects) || 0);
+  const classified = good + defects;
+  return classified ? Math.round((good / classified) * 100) : null;
+}
+
 function renderResult(result) {
   $("good-count").textContent = result.good ?? 0;
   $("defect-count").textContent = result.defects ?? 0;
   $("total-count").textContent = result.total ?? 0;
-  $("quality-score").textContent = "N/A";
+  const overallGrade = calculateOverallGrade(result);
+  $("quality-score").textContent = overallGrade == null ? "N/A" : `${overallGrade}%`;
 
   const verdict = $("verdict");
   const notice = result.total
@@ -409,7 +417,7 @@ function saveHistory(result) {
   rows.unshift({
     name: selectedName,
     date: new Date().toLocaleString(),
-    score: null,
+    score: calculateOverallGrade(result),
     verdict: result.verdict,
     defects: result.defects
   });
@@ -435,7 +443,7 @@ function renderHistory() {
           <div class="history-row">
             <span>
               <b>${escapeHtml(row.name || "Board inspection")}</b>
-              <small>${escapeHtml(row.date)} · ${Number(row.defects) || 0} known defect-class detections · Board grade: not validated</small>
+              <small>${escapeHtml(row.date)} · ${Number(row.defects) || 0} known defect-class detections · Overall grade: ${row.score == null ? "N/A" : `${Number(row.score)}% (detection ratio)`} · Not validated</small>
             </span>
             <span class="pill">${status}</span>
           </div>
@@ -562,6 +570,80 @@ if (landingHero && window.matchMedia("(pointer: fine) and (prefers-reduced-motio
 }
 
 /* ---------- Settings initialization ---------- */
+/* Vertical scroll carries the camera across the pinned field journey. */
+(function initHowtoJourney() {
+  const section = document.querySelector("#howto-journey");
+  const track = section?.querySelector(".journey-track");
+  const scenes = [...(section?.querySelectorAll("[data-journey-scene]") || [])];
+  if (!section || !track || !scenes.length) return;
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const mobile = window.matchMedia("(max-width: 760px)");
+  const siteHeader = document.querySelector(".site-header");
+  const currentLabel = section.querySelector(".journey-current");
+  const progressFill = section.querySelector(".journey-progress-fill");
+  let target = 0;
+  let shown = 0;
+  let scrollProgress = 0;
+  let frame = 0;
+  let previous = 0;
+  let previousTime = 0;
+
+  function readProgress() {
+    if (!mobile.matches && !reduced.matches) section.style.height = `${(scenes.length + 3) * 100}vh`;
+    const bounds = section.getBoundingClientRect();
+    const inFocus = bounds.top < window.innerHeight * 0.9 && bounds.bottom > window.innerHeight + 1;
+    siteHeader?.classList.toggle("journey-away", inFocus);
+    if (mobile.matches || reduced.matches) {
+      track.style.transform = "none";
+      track.style.filter = "none";
+      section.style.height = "auto";
+      const anchor = section.querySelector(".journey-anchor");
+      if (anchor) anchor.style.cssText = "";
+      return;
+    }
+    const rect = bounds;
+    const travel = Math.max(1, section.offsetHeight - window.innerHeight);
+    scrollProgress = Math.max(0, Math.min(1, -rect.top / travel));
+    const introHold = 0.10;
+    const outroHold = 0.10;
+    target = Math.max(0, Math.min(1, (scrollProgress - introHold) / (1 - introHold - outroHold)));
+    if (!frame) frame = requestAnimationFrame(animate);
+  }
+
+  function animate(time) {
+    frame = 0;
+    const delta = target - shown;
+    const elapsed = previousTime ? Math.min(48, time - previousTime) : 16;
+    shown += delta * (1 - Math.exp(-elapsed / 82));
+    if (Math.abs(delta) < 0.0006) shown = target;
+    const movement = Math.abs(shown - previous) * (scenes.length - 1) * window.innerWidth;
+    const x = shown * (scenes.length - 1) * 25;
+    track.style.transform = `translate3d(-${x}%, 0, 0)`;
+    track.style.filter = `blur(${Math.min(5, movement / 18)}px)`;
+    previous = shown;
+    previousTime = time;
+    const anchor = section.querySelector(".journey-anchor");
+    if (anchor) {
+      const introFade = Math.max(0, Math.min(1, scrollProgress / 0.085));
+      anchor.style.opacity = String(1 - introFade);
+      anchor.style.transform = `translate3d(${-((anchor.offsetWidth || 390) + window.innerWidth * 0.05) * introFade}px, ${-10 * introFade}px, 0)`;
+      anchor.style.filter = "none";
+    }
+    const active = Math.min(scenes.length - 1, Math.round(shown * (scenes.length - 1)));
+    scenes.forEach((scene, index) => scene.classList.toggle("is-active", index === active));
+    if (currentLabel) currentLabel.textContent = String(active + 1).padStart(2, "0");
+    if (progressFill) progressFill.style.transform = `scaleX(${Math.max(0.2, shown)})`;
+    if (shown !== target) frame = requestAnimationFrame(animate);
+  }
+
+  window.addEventListener("scroll", readProgress, { passive: true });
+  window.addEventListener("resize", readProgress, { passive: true });
+  mobile.addEventListener?.("change", readProgress);
+  reduced.addEventListener?.("change", readProgress);
+  readProgress();
+})();
+
 $("confidence").value = settings.confidence;
 $("api-key").value = settings.apiKey;
 $("show-labels").checked = settings.showLabels;
@@ -923,4 +1005,140 @@ $("save-settings").addEventListener("click", saveSettings);
   window.addEventListener("blur", stopDrawing);
   document.addEventListener("selectstart", (event) => { if (drawing) event.preventDefault(); });
   document.addEventListener("dragstart", (event) => event.preventDefault());
+})();
+
+
+/* ---------- Upload page v2 (replace the previous initUploadStage block at the END of app.js) ---------- */
+(function initUploadStage() {
+  const root = $("ux-root");
+  const stage = $("dropzone");
+  if (!root || !stage) return;
+
+  const btn = $("analyze-button");
+  const preview = $("preview");
+  const caption = $("file-caption");
+  const tag = $("ux-tag");
+  const select = $("sample-select");
+  const chips = document.querySelectorAll(".ux-chip");
+  const drawer = $("ux-drawer");
+  const fine = window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches;
+  const TAGS = { idle: "Waiting for an image", ready: "Image locked · ready", scanning: "Scanning joints…", done: "Analysis complete" };
+  let wasLoading = false, analyzed = false, lastCaption = "", prevState = "idle";
+
+  function setDrawer(open) {
+    drawer.classList.toggle("is-open", open);
+    $("ux-more").setAttribute("aria-expanded", String(open));
+  }
+
+  function sync() {
+    const loading = btn.classList.contains("loading");
+    const failed = !$("error-message").classList.contains("hidden");
+    if (wasLoading && !loading) analyzed = !failed;
+    wasLoading = loading;
+    const cap = caption.textContent;
+    if (cap !== lastCaption) { lastCaption = cap; if (!loading) analyzed = false; }
+    const loaded = !preview.classList.contains("hidden");
+    const state = loading ? "scanning" : !loaded ? "idle" : analyzed ? "done" : "ready";
+    root.dataset.state = state;
+    tag.textContent = TAGS[state];
+    if (state === "done" && prevState !== "done") setDrawer(true);
+    if (state !== "done") setDrawer(false);
+    if (state !== "idle") { stage.style.setProperty("--rx", "0deg"); stage.style.setProperty("--ry", "0deg"); }
+    prevState = state;
+  }
+
+  $("ux-more").addEventListener("click", () => setDrawer(!drawer.classList.contains("is-open")));
+  $("ux-close").addEventListener("click", () => setDrawer(false));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setDrawer(false); });
+
+  const watcher = new MutationObserver(sync);
+  watcher.observe(btn, { attributes: true, attributeFilter: ["class"] });
+  watcher.observe(preview, { attributes: true, attributeFilter: ["class"] });
+  watcher.observe(caption, { childList: true, characterData: true, subtree: true });
+  watcher.observe($("error-message"), { attributes: true, attributeFilter: ["class"] });
+  sync();
+
+  // Sample chips drive the hidden select so the existing handler still runs
+  chips.forEach((chip) => chip.addEventListener("click", () => {
+    select.value = chip.dataset.sample;
+    select.dispatchEvent(new Event("change"));
+    chips.forEach((c) => c.classList.toggle("is-on", c === chip));
+  }));
+  $("file-input").addEventListener("change", () => chips.forEach((c) => c.classList.remove("is-on")));
+
+  // Paste an image straight from the clipboard
+  document.addEventListener("paste", (e) => {
+    if (!$("inspection-view").classList.contains("active")) return;
+    const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+    const file = item?.getAsFile();
+    if (file) setFile(new File([file], `pasted-${Date.now()}.${file.type.split("/")[1] || "png"}`, { type: file.type }));
+  });
+
+  if (fine) {
+    // Glass spotlight follows the pointer; the card tilts slightly while waiting for an image
+    stage.addEventListener("pointermove", (e) => {
+      const r = stage.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top) / r.height;
+      stage.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      stage.style.setProperty("--my", `${e.clientY - r.top}px`);
+      if (root.dataset.state === "idle") {
+        stage.style.setProperty("--ry", `${(px - 0.5) * 5}deg`);
+        stage.style.setProperty("--rx", `${(0.5 - py) * 4}deg`);
+      }
+    });
+    stage.addEventListener("pointerleave", () => {
+      stage.style.setProperty("--rx", "0deg");
+      stage.style.setProperty("--ry", "0deg");
+    });
+
+    // Magnetic analyze button
+    btn.addEventListener("pointermove", (e) => {
+      if (btn.disabled) return;
+      const r = btn.getBoundingClientRect();
+      btn.style.translate = `${(e.clientX - r.left - r.width / 2) * 0.12}px ${(e.clientY - r.top - r.height / 2) * 0.2}px`;
+    });
+    btn.addEventListener("pointerleave", () => { btn.style.translate = ""; });
+  }
+
+  // Count-up animation for the numbers
+  ["good-count", "defect-count", "total-count"].forEach((id) => {
+    const el = $(id);
+    let displayed = Number(el.textContent) || 0;
+    let requested = null;
+    let run = 0;
+    let observer;
+
+    function writeDisplay(value) {
+      observer.disconnect();
+      el.textContent = String(value);
+      observer.observe(el, { childList: true, characterData: true, subtree: true });
+      displayed = value;
+    }
+
+    observer = new MutationObserver(() => {
+      const target = Number(el.textContent) || 0;
+      if (target === requested) return;
+      requested = target;
+      const thisRun = ++run;
+      const from = displayed;
+      const start = performance.now();
+
+      function step(now) {
+        if (thisRun !== run) return;
+        const progress = Math.min(1, (now - start) / 700);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        writeDisplay(Math.round(from + (target - from) * eased));
+        if (progress < 1) requestAnimationFrame(step);
+        else {
+          el.parentElement.classList.remove("pop");
+          void el.offsetWidth;
+          el.parentElement.classList.add("pop");
+        }
+      }
+
+      step(start);
+    });
+    observer.observe(el, { childList: true, characterData: true, subtree: true });
+  });
 })();
