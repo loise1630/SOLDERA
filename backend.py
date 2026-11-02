@@ -76,6 +76,12 @@ PUBLIC_IMAGE_PATHS = {f"/images/{name}" for name in EDUCATION_IMAGES} | {
     "/images/assets/mainbg.png",
     "/images/assets/soldera.png",
     "/images/assets/soldering.png",
+    "/images/assets/team/geraldsample1.jpg",
+    "/images/assets/team/geraldsample2.jpg",
+    "/images/assets/team/geraldsample3.jpg",
+    "/images/assets/team/geraldsample4.jpg",
+    "/images/assets/team/geraldsample5.jpg",
+    "/images/assets/team/geraldsample6.jpg",
 }
 
 

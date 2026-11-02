@@ -6,7 +6,11 @@ The interface is a standalone HTML/CSS/JavaScript frontend. `backend.py` serves 
 
 1. Install the backend dependency: `& 'C:\Users\Admin\AppData\Local\Programs\Python\Python312\python.exe' -m pip install -r requirements.txt`
 2. Start the server: `& 'C:\Users\Admin\AppData\Local\Programs\Python\Python312\python.exe' backend.py`
-3. Open <http://127.0.0.1:8000>.
+3. Open <http://127.0.0.1:8016>.
+
+## Camera on phone or laptop
+
+On a laptop, open SOLDERA at `http://127.0.0.1:8016` and choose a camera in the Take a photo dialog when more than one is available. On a phone, run the server on your local network with `$env:HOST="0.0.0.0"; py app.py`, then open `http://<laptop-LAN-IP>:8016` on the phone while both devices use the same Wi-Fi. The phone uses its native camera picker when browser live-camera access is unavailable; live in-page camera preview requires HTTPS.
 
 The backend calls the configured Roboflow workflow for every image. It reads `ROBOFLOW_API_KEY` from a local `.env` file or process environment; the website Settings key overrides it. `ROBOFLOW_WORKSPACE`, `ROBOFLOW_WORKFLOW_ID`, and `ROBOFLOW_GOOD_CLASS` can override the default workflow and its good-class label. Inspection history and preferences are stored in the browser. Keep `.env` private; it is excluded by `.gitignore` and the web server does not serve it.
 

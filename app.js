@@ -218,6 +218,175 @@ $("file-input").addEventListener("change", (event) => {
   setFile(event.target.files[0]);
 });
 
+const cameraDialog = $("camera-dialog");
+const cameraVideo = $("camera-video");
+const cameraDeviceField = $("camera-device-field");
+const cameraDeviceSelect = $("camera-device");
+const cameraFileInput = $("camera-file-input");
+let cameraStream = null;
+let cameraRequest = 0;
+let preferredCameraId = "";
+const mobileCamera = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+function stopCamera() {
+  cameraRequest += 1;
+  cameraStream?.getTracks().forEach((track) => track.stop());
+  cameraStream = null;
+  cameraVideo.srcObject = null;
+}
+function resetCameraReview() {
+  cameraVideo.hidden = false;
+  $("camera-capture").hidden = true;
+  $("camera-live-controls").hidden = false;
+  $("camera-review-controls").hidden = true;
+  cameraDeviceSelect.disabled = false;
+}
+function showCameraError(error) {
+  const message = error?.name === "NotAllowedError"
+    ? "Camera permission was denied. Allow camera access in your browser, then try again."
+    : error?.name === "NotFoundError"
+      ? "No camera was found on this device. You can still choose an image to upload."
+      : error?.name === "NotReadableError"
+        ? "The camera is already in use by another app. Close it and try again."
+        : "Could not start this camera. Choose another device or check your camera permissions.";
+  $("camera-error").textContent = message;
+}
+async function refreshCameraDevices(activeId) {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+  try {
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "videoinput");
+    cameraDeviceSelect.replaceChildren(...devices.map((device, index) => {
+      const option = document.createElement("option");
+      option.value = device.deviceId;
+      option.textContent = device.label || `Camera ${index + 1}`;
+      return option;
+    }));
+    cameraDeviceField.hidden = devices.length < 2;
+    if (activeId && devices.some((device) => device.deviceId === activeId)) cameraDeviceSelect.value = activeId;
+  } catch {
+    cameraDeviceField.hidden = true;
+  }
+}
+async function startCamera(deviceId = "") {
+  const selectedDeviceId = deviceId || preferredCameraId;
+  const request = ++cameraRequest;
+  cameraStream?.getTracks().forEach((track) => track.stop());
+  cameraStream = null;
+  cameraVideo.srcObject = null;
+  $("camera-error").textContent = "";
+  resetCameraReview();
+
+  const video = {
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+    ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : mobileCamera ? { facingMode: { ideal: "environment" } } : {})
+  };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video });
+    if (!cameraDialog.open || request !== cameraRequest) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    cameraStream = stream;
+    cameraVideo.srcObject = stream;
+    await cameraVideo.play();
+    const activeId = stream.getVideoTracks()[0]?.getSettings?.().deviceId || selectedDeviceId;
+    preferredCameraId = activeId || "";
+    await refreshCameraDevices(activeId);
+  } catch (error) {
+    if (request === cameraRequest && cameraDialog.open) showCameraError(error);
+  }
+}
+
+$("take-photo-button").addEventListener("click", async () => {
+  $("camera-error").textContent = "";
+  resetCameraReview();
+  cameraDialog.showModal();
+  if (!navigator.mediaDevices?.getUserMedia) {
+    if (mobileCamera) {
+      cameraDialog.close();
+      cameraFileInput.value = "";
+      cameraFileInput.click();
+      return;
+    }
+    $("camera-error").textContent = "This browser blocks live camera access here. Open SOLDERA on HTTPS or localhost, or upload an image instead.";
+    return;
+  }
+  await startCamera();
+});
+
+cameraDeviceSelect.addEventListener("change", () => {
+  if (cameraDeviceSelect.value) startCamera(cameraDeviceSelect.value);
+});
+function useCapturedFile(file) {
+  if (!file) return;
+  const supported = /^image\/(jpeg|png|webp)$/i.test(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name);
+  if (supported && file.size <= FILE_LIMIT) {
+    setFile(file, file.name || `soldera-photo-${Date.now()}.jpg`);
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  image.onload = () => {
+    URL.revokeObjectURL(url);
+    const scale = Math.min(1, 1920 / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        showError("This camera photo could not be prepared. Try taking it again as JPG.");
+        return;
+      }
+      const normalized = new File([blob], `soldera-photo-${Date.now()}.jpg`, { type: "image/jpeg" });
+      setFile(normalized, normalized.name);
+    }, "image/jpeg", 0.92);
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    showError("This photo format is not supported by the browser. Try JPG, PNG or WEBP.");
+  };
+  image.src = url;
+}
+cameraFileInput.addEventListener("change", () => useCapturedFile(cameraFileInput.files?.[0]));
+$("capture-photo").addEventListener("click", () => {
+  if (!cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+    $("camera-error").textContent = "Camera is still starting. Try again in a moment.";
+    return;
+  }
+  const canvas = $("camera-capture");
+  const scale = Math.min(1, 1920 / Math.max(cameraVideo.videoWidth, cameraVideo.videoHeight));
+  canvas.width = Math.round(cameraVideo.videoWidth * scale);
+  canvas.height = Math.round(cameraVideo.videoHeight * scale);
+  canvas.getContext("2d").drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+  cameraVideo.hidden = true;
+  canvas.hidden = false;
+  $("camera-live-controls").hidden = true;
+  $("camera-review-controls").hidden = false;
+  cameraDeviceSelect.disabled = true;
+  $("camera-error").textContent = "";
+});
+$("retake-photo").addEventListener("click", () => {
+  resetCameraReview();
+  $("camera-error").textContent = "";
+});
+$("use-photo").addEventListener("click", () => {
+  $("camera-capture").toBlob((blob) => {
+    if (!blob) {
+      $("camera-error").textContent = "Could not prepare the photo. Please retake it.";
+      return;
+    }
+    const photo = new File([blob], `soldera-photo-${Date.now()}.jpg`, { type: "image/jpeg" });
+    stopCamera();
+    cameraDialog.close();
+    setFile(photo, photo.name);
+  }, "image/jpeg", 0.92);
+});
+$("camera-close").addEventListener("click", () => cameraDialog.close());
+cameraDialog.addEventListener("close", stopCamera);
 $("dropzone").addEventListener("dragover", (event) => {
   event.preventDefault();
   $("dropzone").classList.add("dragover");
@@ -257,7 +426,7 @@ $("analyze-button").addEventListener("click", async () => {
   const button = $("analyze-button");
   button.disabled = true;
   button.classList.add("loading");
-  button.innerHTML = "<span>◌</span> Analyzing board…";
+  button.textContent = "Analyzing�";
   showError();
 
   try {
@@ -285,7 +454,7 @@ $("analyze-button").addEventListener("click", async () => {
   } finally {
     button.disabled = false;
     button.classList.remove("loading");
-    button.innerHTML = "<span>✧</span> Analyze Soldering Quality";
+    button.textContent = "Analyze Soldering Quality";
   }
 });
 
@@ -302,6 +471,11 @@ function renderResult(result) {
   $("total-count").textContent = result.total ?? 0;
   const overallGrade = calculateOverallGrade(result);
   $("quality-score").textContent = overallGrade == null ? "N/A" : `${overallGrade}%`;
+  $("summary-quality-score").textContent = overallGrade == null ? "N/A" : `${overallGrade}%`;
+  $("summary-good-count").textContent = result.good ?? 0;
+  $("summary-defect-count").textContent = result.defects ?? 0;
+  $("summary-total-count").textContent = result.total ?? 0;
+  $("summary-subtitle").textContent = `Inspection complete � ${selectedName}`;
 
   const verdict = $("verdict");
   const notice = result.total
@@ -393,6 +567,9 @@ function drawAnnotations(predictions) {
         ctx.fillText(label, x + 5, Math.max(labelHeight - 4, y - 4));
       }
     });
+
+    const findingsPhoto = $("findings-photo");
+    if (findingsPhoto) findingsPhoto.src = canvas.toDataURL("image/png");
   };
 
   image.src = canvas.toDataURL("image/png");
@@ -453,10 +630,25 @@ function renderHistory() {
 }
 
 /* ---------- Workspace navigation ---------- */
+const homeView = $("home-view");
+const uploadSection = $("inspection-view");
+if (homeView && uploadSection) homeView.append(uploadSection);
+
 document.querySelectorAll(".nav-link").forEach((button) => {
   button.addEventListener("click", () => {
     const homeView = $("home-view");
-    if (button.dataset.sectionLink && homeView?.classList.contains("active") && button.dataset.forceView !== "true") {
+    if (button.dataset.view === "inspection") {
+      document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view === homeView));
+      homeView?.classList.remove("upload-only");
+      document.querySelectorAll(".nav-link").forEach((item) => item.classList.toggle("active", item === button));
+      uploadSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    document.body.classList.remove("upload-view-active");
+    if (button.dataset.sectionLink && button.dataset.forceView !== "true") {
+      document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view === homeView));
+      document.querySelectorAll(".nav-link").forEach((item) => item.classList.toggle("active", item === button));
       document.getElementById(button.dataset.sectionLink)?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -476,11 +668,21 @@ document.querySelectorAll(".nav-link").forEach((button) => {
 
 function updateLandingSectionNav() {
   const homeView = $("home-view");
-  const aboutSection = $("about-section");
-  if (!homeView?.classList.contains("active") || !aboutSection) return;
+  const uploadSection = $("inspection-view");
+  if (!homeView?.classList.contains("active") || !uploadSection) return;
 
-  const bounds = aboutSection.getBoundingClientRect();
   const marker = window.innerHeight * 0.5;
+  const uploadBounds = uploadSection.getBoundingClientRect();
+  const uploadIsActive = uploadBounds.top <= marker && uploadBounds.bottom > marker;
+  document.body.classList.toggle("upload-view-active", uploadIsActive);
+  if (uploadIsActive) {
+    document.querySelectorAll(".nav-link").forEach((link) => link.classList.toggle("active", link.dataset.view === "inspection"));
+    return;
+  }
+
+  const aboutSection = $("about-section");
+  if (!aboutSection) return;
+  const bounds = aboutSection.getBoundingClientRect();
   const aboutIsActive = bounds.top <= marker && bounds.bottom > marker;
   document.querySelectorAll(".nav-link[data-view='home'], .nav-link[data-section-link='about-section']").forEach((link) => {
     link.classList.toggle("active", link.dataset.sectionLink === "about-section" ? aboutIsActive : !aboutIsActive);
@@ -520,18 +722,231 @@ if (featureCards.length && "IntersectionObserver" in window && !window.matchMedi
   }, { threshold: 0.16 });
   featureCards.forEach((card) => featureObserver.observe(card));
 }
-const teamCards = document.querySelectorAll("[data-team-card]");
-if (teamCards.length && "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  document.body.classList.add("team-motion");
-  const teamObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add("is-visible");
-      observer.unobserve(entry.target);
+/* ---------- Meet the Team carousel ---------- */
+(function initTeamCarousel() {
+  const root = document.getElementById("tm-carousel");
+  if (!root) return;
+
+  const view = document.getElementById("about-view");
+  const stage = document.getElementById("tm-stage");
+  const summary = document.getElementById("tm-summary");
+  const details = document.getElementById("tm-details");
+  const socials = document.getElementById("tm-socials");
+  const prevBtn = document.getElementById("tm-prev");
+  const nextBtn = document.getElementById("tm-next");
+  const backBtn = document.getElementById("tm-back");
+
+  /* Palitan dito ang names, roles, bios, skills at photos */
+  const team = [
+    { name: "Gerald Loise Garcia", role: "Capstone Leader", education: "Bachelor of Science in Information Technology", school: "Technological University of the Philippines - Taguig", bio: "An aspiring Cloud and Network Engineer with knowledge of networking fundamentals, database management, and SQL. Continuously learning and expanding my skills in Cisco networking, cloud computing, database technologies, and data management. Passionate about technology, problem-solving, and continuously improving my technical skills to grow in the IT industry.", skills: ["NETWORKING", "CISCO", "SQL", "CLOUD COMPUTING", "DATABASE MANAGEMENT"], photo: "/images/assets/team/geraldsample1.jpg" },
+    { name: "Daniel Reyes", role: "Founder & CEO", education: "Technology and Product Leadership", school: "SOLDERA Team", bio: "Bringing the team together to make solder inspection more approachable. Focused on product direction, collaboration, and building useful tools for learners and makers.", skills: ["LEADERSHIP", "PRODUCT", "STRATEGY"], photo: "/images/assets/team/geraldsample2.jpg" },
+    { name: "Maria Santos", role: "Chief Technology Officer", education: "Computer Science", school: "SOLDERA Team", bio: "Connecting software, hardware, and machine learning into a dependable solder inspection experience. Enjoys turning complex ideas into practical systems.", skills: ["SOFTWARE", "SYSTEMS", "MACHINE LEARNING"], photo: "/images/assets/team/geraldsample3.jpg" },
+    { name: "Kevin Dela Cruz", role: "Lead Engineer", education: "Computer Engineering", school: "SOLDERA Team", bio: "Building and refining the tools behind image capture, inspection, and results. Values clear engineering, reliable systems, and thoughtful problem solving.", skills: ["ENGINEERING", "PYTHON", "QUALITY"], photo: "/images/assets/team/geraldsample4.jpg" },
+    { name: "Anna Mendoza", role: "Product Designer", education: "Design and Human-Computer Interaction", school: "SOLDERA Team", bio: "Making technical workflows easier to understand through clear layouts and friendly interactions. Focused on useful details and accessible product experiences.", skills: ["UI DESIGN", "PROTOTYPING", "RESEARCH"], photo: "/images/assets/team/geraldsample5.jpg" },
+    { name: "Rafael Aquino", role: "AI Specialist", education: "Data Science and Artificial Intelligence", school: "SOLDERA Team", bio: "Exploring computer vision and model feedback to help users learn from each inspection. Interested in practical AI and responsible, understandable results.", skills: ["COMPUTER VISION", "AI", "DATA"], photo: "/images/assets/team/geraldsample6.jpg" }
+  ];
+
+  const N = team.length;
+  let active = 0;
+  let expanded = false;
+  let swapToken = 0;
+
+  const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const pad = (n) => String(n).padStart(2, "0");
+  const initials = (name) => name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  const capIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3.5 3 8.5 3 12 0v-5M22 9v6"/></svg>';
+
+  /* ----- build cards + summary once ----- */
+  stage.innerHTML = team.map((p, i) => `
+    <button class="tm-card" type="button" data-i="${i}" data-pos="out-right" aria-label="${esc(p.name)}">
+      <span class="tm-inner">
+        <img src="${esc(p.photo)}" alt="${esc(p.name)}" draggable="false">
+        <span class="tm-fallback" aria-hidden="true">${esc(initials(p.name))}</span>
+        <span class="tm-shine" aria-hidden="true"></span>
+        <span class="tm-hint">VIEW PROFILE</span>
+      </span>
+    </button>`).join("");
+
+  summary.innerHTML = `
+    <div class="tm-ident"><h2 class="tm-name"></h2><p class="tm-role"></p></div>
+    <div class="tm-dots">${team.map((p, i) => `<button class="tm-dot" type="button" data-go="${i}" aria-label="Show ${esc(p.name)}"></button>`).join("")}</div>`;
+
+  const cards = [...stage.querySelectorAll(".tm-card")];
+  const dots = [...summary.querySelectorAll(".tm-dot")];
+  const ident = summary.querySelector(".tm-ident");
+  const nameEl = summary.querySelector(".tm-name");
+  const roleEl = summary.querySelector(".tm-role");
+
+  cards.forEach((card) => {
+    card.querySelector("img").addEventListener("error", () => card.classList.add("photo-unavailable"), { once: true });
+  });
+
+  /* ----- positions: only left / center / right are visible ----- */
+  function offsetOf(i) {
+    let d = (i - active) % N;
+    if (d < 0) d += N;
+    if (d > N / 2) d -= N;
+    return d;
+  }
+  const posName = (d) => (d === 0 ? "center" : d === -1 ? "left" : d === 1 ? "right" : d < 0 ? "out-left" : "out-right");
+
+  function update() {
+    cards.forEach((card, i) => {
+      const d = offsetOf(i);
+      card.dataset.pos = posName(d);
+      card.tabIndex = Math.abs(d) <= 1 ? 0 : -1;
+      card.setAttribute("aria-hidden", String(Math.abs(d) > 1));
+      card.setAttribute("aria-expanded", String(d === 0 && expanded));
+      card.querySelector(".tm-hint").textContent = d === 0 ? (expanded ? "BACK" : "VIEW PROFILE") : "SELECT";
     });
-  }, { threshold: 0.12 });
-  teamCards.forEach((card) => teamObserver.observe(card));
-}
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("is-on", i === active);
+      dot.setAttribute("aria-current", i === active ? "true" : "false");
+    });
+  }
+
+  function setIdentity(dir) {
+    ident.style.setProperty("--dir", dir);
+    ident.classList.remove("tm-swap");
+    void ident.offsetWidth; // restart animation
+    nameEl.textContent = team[active].name;
+    roleEl.textContent = team[active].role;
+    ident.classList.add("tm-swap");
+  }
+
+  /* ----- profile (photo 2) ----- */
+  function profileHTML(index, dir) {
+    const p = team[index];
+    return `
+      <article class="tm-profile" style="--dir:${dir}">
+        <p class="tm-kicker" style="--i:0">PROFILE</p>
+        <h2 style="--i:1">${esc(p.name)}</h2>
+        <p class="tm-edu" style="--i:2">${capIcon}<span>${esc(p.education)}<br>at ${esc(p.school)}</span></p>
+        <p class="tm-bio" style="--i:3">${esc(p.bio)}</p>
+        <div class="tm-skills" style="--i:4">${p.skills.map((s, k) => `<span style="--k:${k}">${esc(s)}</span>`).join("")}</div>
+        <small class="tm-count" style="--i:5">${pad(index + 1)} / ${pad(N)} · ${esc(p.role.toUpperCase())}</small>
+      </article>`;
+  }
+
+  function swapProfile(dir) {
+    const token = ++swapToken;
+    const old = details.querySelector(".tm-profile");
+    if (old) {
+      old.style.setProperty("--dir", dir);
+      old.classList.add("is-out");
+    }
+    window.setTimeout(() => {
+      if (token !== swapToken) return;
+      details.innerHTML = profileHTML(active, dir);
+    }, old ? 240 : 0);
+  }
+
+  function setExpanded(value) {
+    expanded = value;
+    root.classList.toggle("is-expanded", value);
+    details.setAttribute("aria-hidden", String(!value));
+    socials.setAttribute("aria-hidden", String(!value));
+    details.inert = !value;
+    backBtn.tabIndex = value ? 0 : -1;
+    if (value) {
+      swapToken += 1;
+      details.innerHTML = profileHTML(active, 0);
+    }
+    update();
+  }
+
+  /* ----- navigation ----- */
+  function goTo(target, dir) {
+    const next = ((target % N) + N) % N;
+    if (next === active) return;
+    if (dir === undefined) {
+      let d = next - active;
+      if (d > N / 2) d -= N;
+      if (d < -N / 2) d += N;
+      dir = d > 0 ? 1 : -1;
+    }
+    active = next;
+    setIdentity(dir);
+    update();
+    if (expanded) swapProfile(dir);
+  }
+  const move = (step) => goTo(active + step, step);
+
+  prevBtn.addEventListener("click", () => move(-1));
+  nextBtn.addEventListener("click", () => move(1));
+  backBtn.addEventListener("click", () => setExpanded(false));
+  summary.addEventListener("click", (e) => {
+    const dot = e.target.closest(".tm-dot");
+    if (dot) goTo(Number(dot.dataset.go));
+  });
+
+  let swallowClick = false;
+  stage.addEventListener("click", (e) => {
+    if (swallowClick) return;
+    const card = e.target.closest(".tm-card");
+    if (!card) return;
+    const pos = card.dataset.pos;
+    if (pos === "center") setExpanded(!expanded);
+    else if (pos === "left") move(-1);
+    else if (pos === "right") move(1);
+  });
+
+  /* keyboard */
+  document.addEventListener("keydown", (e) => {
+    if (!view.classList.contains("active")) return;
+    if (e.key === "ArrowRight") { e.preventDefault(); move(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); move(-1); }
+    else if (e.key === "Escape" && expanded) setExpanded(false);
+  });
+
+  /* mouse wheel / trackpad */
+  let wheelSum = 0;
+  let wheelUnlockAt = 0;
+  document.addEventListener("wheel", (e) => {
+    if (!view.classList.contains("active") || e.ctrlKey) return;
+    const phoneTextScroll = window.matchMedia("(max-width: 700px)").matches && e.target instanceof Element && e.target.closest(".tm-details") && details.scrollHeight > details.clientHeight && Math.abs(e.deltaY) >= Math.abs(e.deltaX);
+    if (phoneTextScroll) return;
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (!delta) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now < wheelUnlockAt) return;
+    wheelSum += delta;
+    if (Math.abs(wheelSum) >= 40) {
+      move(wheelSum > 0 ? 1 : -1);
+      wheelSum = 0;
+      wheelUnlockAt = now + 300;
+    }
+  }, { passive: false, capture: true });
+
+  /* swipe (touch / mouse drag) */
+  let start = null;
+  root.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".tm-arrow, .tm-back, .tm-dot, .tm-details")) return;
+    start = { x: e.clientX, y: e.clientY };
+  });
+  root.addEventListener("pointerup", (e) => {
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    start = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      swallowClick = true;
+      window.setTimeout(() => { swallowClick = false; }, 0);
+      move(dx < 0 ? 1 : -1);
+    }
+  });
+  root.addEventListener("pointercancel", () => { start = null; });
+
+  /* close profile when leaving the page */
+  new MutationObserver(() => {
+    if (!view.classList.contains("active") && expanded) setExpanded(false);
+  }).observe(view, { attributes: true, attributeFilter: ["class"] });
+
+  /* start */
+  setIdentity(0);
+  update();
+})();
 const revealGroups = document.querySelectorAll("[data-scroll-reveal-group]");
 if (revealGroups.length && "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   document.body.classList.add("scroll-reveal-ready");
@@ -620,7 +1035,7 @@ if (landingHero && window.matchMedia("(pointer: fine) and (prefers-reduced-motio
     const movement = Math.abs(shown - previous) * (scenes.length - 1) * window.innerWidth;
     const x = shown * (scenes.length - 1) * 25;
     track.style.transform = `translate3d(-${x}%, 0, 0)`;
-    track.style.filter = `blur(${Math.min(5, movement / 18)}px)`;
+    track.style.filter = `blur(${Math.min(0.9, movement / 90)}px)`;
     previous = shown;
     previousTime = time;
     const anchor = section.querySelector(".journey-anchor");
@@ -1008,7 +1423,7 @@ $("save-settings").addEventListener("click", saveSettings);
 })();
 
 
-/* ---------- Upload page v2 (replace the previous initUploadStage block at the END of app.js) ---------- */
+/* ---------- Upload section v3 ---------- */
 (function initUploadStage() {
   const root = $("ux-root");
   const stage = $("dropzone");
@@ -1019,80 +1434,406 @@ $("save-settings").addEventListener("click", saveSettings);
   const caption = $("file-caption");
   const tag = $("ux-tag");
   const select = $("sample-select");
-  const chips = document.querySelectorAll(".ux-chip");
-  const drawer = $("ux-drawer");
-  const fine = window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches;
-  const TAGS = { idle: "Waiting for an image", ready: "Image locked · ready", scanning: "Scanning joints…", done: "Analysis complete" };
-  let wasLoading = false, analyzed = false, lastCaption = "", prevState = "idle";
+  const errorBox = $("error-message");
+  const fileInput = $("file-input");
+  const statusText = $("ux-status-text");
+  const reticles = $("ux-reticles");
+  const toast = $("ux-toast");
+  const chips = document.querySelectorAll(".ux-sample");
+  const findingsDialog = $("findings-dialog");
+  const findingsButton = $("ux-findings-button");
+  const resetButton = $("ux-reset-button");
+  const steps = [...document.querySelectorAll("#ux-steps .ux-step")];
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fine = window.matchMedia("(pointer: fine)").matches && !reduced;
 
-  function setDrawer(open) {
-    drawer.classList.toggle("is-open", open);
-    $("ux-more").setAttribute("aria-expanded", String(open));
+  const TAGS = { idle: "Waiting for an image", ready: "Image locked · ready", scanning: "Scanning joints…", done: "Analysis complete" };
+  const SCAN_LINES = ["Locating solder joints…", "Checking fillet shape…", "Looking for bridges…", "Measuring coverage…", "Scoring detections…"];
+  const STEP_STATES = { idle: ["active", "todo", "todo"], ready: ["done", "active", "todo"], scanning: ["done", "busy", "todo"], done: ["done", "done", "active"] };
+
+  let wasLoading = false, analyzed = false, prevState = null;
+
+  /* ---------- helpers ---------- */
+  function countUp(el, target, fmt = String, dur = 900) {
+    if (reduced || !target) { el.textContent = fmt(target); return; }
+    const t0 = performance.now();
+    (function step(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      el.textContent = fmt(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
   }
 
+  let toastTimer = 0;
+  function showToast(text) {
+    toast.textContent = text;
+    toast.classList.add("is-on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("is-on"), 3600);
+  }
+
+  function burst() {
+    if (reduced) return;
+    const ring = $("ux-ringwrap").getBoundingClientRect();
+    const cx = ring.left + ring.width / 2;
+    const cy = Math.min(Math.max(ring.top + ring.height / 2, 90), window.innerHeight - 90);
+    const c = document.createElement("canvas");
+    c.className = "ux-burst";
+    c.width = window.innerWidth; c.height = window.innerHeight;
+    document.body.append(c);
+    const g = c.getContext("2d");
+    const colors = ["#fff3c4", "#ffd36b", "#ffb43c", "#ff8a3d", "#ffffff"];
+    const parts = Array.from({ length: 70 }, () => {
+      const a = Math.random() * Math.PI * 2, s = 3 + Math.random() * 7;
+      return { x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 3, life: 60 + Math.random() * 50, age: 0, len: 4 + Math.random() * 7, col: colors[Math.floor(Math.random() * colors.length)] };
+    });
+    (function frame() {
+      g.clearRect(0, 0, c.width, c.height);
+      let alive = false;
+      parts.forEach((p) => {
+        if (p.age > p.life) return;
+        alive = true; p.age++;
+        p.x += p.vx; p.y += p.vy; p.vy += .22; p.vx *= .985;
+        g.globalAlpha = Math.max(0, 1 - p.age / p.life);
+        g.strokeStyle = p.col; g.lineWidth = 2; g.lineCap = "round";
+        g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * p.len / 4, p.y - p.vy * p.len / 4); g.stroke();
+      });
+      if (alive) requestAnimationFrame(frame); else c.remove();
+    })();
+  }
+
+  /* ---------- bench stats (saved in this browser) ---------- */
+  const STATS_KEY = "solderaStats";
+  const RANKS = [
+    { n: 0, name: "New solderer" }, { n: 1, name: "Apprentice" }, { n: 3, name: "Technician" },
+    { n: 6, name: "Specialist" }, { n: 12, name: "Solder pro" }
+  ];
+  const rankOf = (boards) => RANKS.reduce((idx, r, k) => (boards >= r.n ? k : idx), 0);
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const yesterdayKey = () => { const d = new Date(); d.setDate(d.getDate() - 1); return dayKey(d); };
+
+  function readStats() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STATS_KEY) || "{}");
+      return { boards: Number(s.boards) || 0, defects: Number(s.defects) || 0, best: s.best == null ? null : Number(s.best), streak: Number(s.streak) || 0, last: s.last || "" };
+    } catch { return { boards: 0, defects: 0, best: null, streak: 0, last: "" }; }
+  }
+  function writeStats(s) { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* storage unavailable */ } }
+
+  function renderStats() {
+    const s = readStats();
+    const best = s.best;
+    const streakAlive = s.last === dayKey() || s.last === yesterdayKey();
+
+    const [tone, label] =
+      best == null ? ["idle", "No score yet"] :
+      best >= 85 ? ["ok", "Excellent"] :
+      best >= 70 ? ["ok", "Good"] :
+      best >= 50 ? ["warn", "Fair"] :
+      ["bad", "Needs work"];
+
+    const rankEl = $("st-rank");
+    rankEl.textContent = label;
+    rankEl.dataset.tone = tone;
+    $("st-boards").textContent = s.boards;
+    $("st-defects").textContent = s.defects;
+    $("st-best").textContent = best == null ? "\u2014" : `${best}%`;
+    $("st-streak").textContent = streakAlive ? s.streak : 0;
+
+    const pct = best == null ? 0 : Math.max(0, Math.min(100, best));
+    $("st-fill").style.width = `${pct}%`;
+    $("st-bar").setAttribute("aria-valuenow", String(Math.round(pct)));
+
+    const r = rankOf(s.boards);
+    if (r < RANKS.length - 1) {
+      const need = RANKS[r + 1].n - s.boards;
+      $("st-next").textContent = s.boards === 0
+        ? "Check your first board to start your streak."
+        : `${need} more board${need > 1 ? "s" : ""} to ${RANKS[r + 1].name}.`;
+    } else {
+      $("st-next").textContent = "Top rank reached. Keep that streak alive.";
+    }
+  }
+
+  /* ---------- photo check (quick client-side estimate) ---------- */
+  const pc = { light: $("pc-light"), focus: $("pc-focus"), size: $("pc-size") };
+  const pcHint = $("pc-hint");
+  const PC_DEFAULT = "A quick estimate of lighting, focus and size once you add a photo.";
+  const setCheck = (li, tone, text) => { li.dataset.tone = tone; li.querySelector("b").textContent = text; };
+  function resetCheck() {
+    Object.values(pc).forEach((li) => setCheck(li, "idle", "\u2014"));
+    pcHint.textContent = PC_DEFAULT;
+  }
+
+  function resetUpload() {
+    if (btn.classList.contains("loading")) return;
+    selectedFile = null;
+    selectedName = "";
+    fileInput.value = "";
+    select.value = "";
+    preview.getContext("2d").clearRect(0, 0, preview.width, preview.height);
+    preview.classList.add("hidden");
+    caption.textContent = "";
+    caption.classList.add("hidden");
+    $("drop-content").classList.remove("hidden");
+    btn.disabled = true;
+    btn.classList.remove("loading");
+    btn.textContent = "Analyze Soldering Quality";
+    showError();
+    analyzed = false;
+    resetCheck();
+    $("findings-photo").removeAttribute("src");
+    $("summary-quality-score").textContent = "0%";
+    $("summary-good-count").textContent = "0";
+    $("summary-defect-count").textContent = "0";
+    $("summary-total-count").textContent = "0";
+    $("summary-msg").textContent = "Your detected joint results will appear here.";
+    $("summary-subtitle").textContent = "Upload a photo to see your inspection summary.";
+    $("quality-score").textContent = "0%";
+    $("good-count").textContent = "0";
+    $("defect-count").textContent = "0";
+    $("total-count").textContent = "0";
+    for (const id of ["ux-ring-fg", "summary-ring-fg"]) $(id).style.strokeDashoffset = "326.73";
+    if (findingsDialog.open) findingsDialog.close();
+    sync();
+  }
+
+  resetButton.addEventListener("click", resetUpload);
+  function evaluatePhoto(img) {
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+    const scale = Math.min(1, 480 / Math.max(nw, nh));
+    const w = Math.max(16, Math.round(nw * scale)), h = Math.max(16, Math.round(nh * scale));
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const g = c.getContext("2d", { willReadFrequently: true });
+    g.drawImage(img, 0, 0, w, h);
+    const px = g.getImageData(0, 0, w, h).data;
+    const lum = new Float32Array(w * h);
+    let sum = 0;
+    for (let i = 0, j = 0; i < px.length; i += 4, j++) { const l = .299 * px[i] + .587 * px[i + 1] + .114 * px[i + 2]; lum[j] = l; sum += l; }
+    const mean = sum / lum.length;
+    let s = 0, s2 = 0, n = 0;
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const v = 4 * lum[i] - lum[i - 1] - lum[i + 1] - lum[i - w] - lum[i + w];
+      s += v; s2 += v * v; n++;
+    }
+    const variance = n ? s2 / n - (s / n) ** 2 : 0;
+    const minSide = Math.min(nw, nh);
+
+    const light = mean < 45 ? ["bad", "Too dark"] : mean < 85 ? ["warn", "A bit dim"] : mean > 205 ? ["warn", "Washed out"] : ["ok", "Good"];
+    const focus = variance < 12 ? ["bad", "Looks blurry"] : variance < 40 ? ["warn", "Slightly soft"] : ["ok", "Sharp"];
+    const size = minSide < 500 ? ["bad", "Low resolution"] : minSide < 900 ? ["warn", "Small"] : ["ok", "Good"];
+    setCheck(pc.light, ...light); setCheck(pc.focus, ...focus); setCheck(pc.size, ...size);
+
+    const tones = [light[0], focus[0], size[0]];
+    pcHint.textContent = tones.includes("bad")
+      ? "Retake if you can. A clearer photo gives the model more to work with."
+      : tones.includes("warn")
+        ? "Usable, but a closer, brighter or steadier shot may detect more joints."
+        : "Looks good. Hit Analyze when you're ready.";
+  }
+
+  let checkToken = 0;
+  function runPhotoCheck() {
+    const file = selectedFile;
+    const token = ++checkToken;
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      if (token !== checkToken) return;
+      try { evaluatePhoto(img); } catch { resetCheck(); }
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  }
+
+  /* ---------- scanning effects ---------- */
+  let scanTimer = 0, retTimer = 0, lineIdx = 0;
+  function addReticle() {
+    const r = document.createElement("i");
+    r.className = "ux-ret";
+    r.style.left = `${16 + Math.random() * 68}%`;
+    r.style.top = `${20 + Math.random() * 58}%`;
+    reticles.append(r);
+    setTimeout(() => r.remove(), 1400);
+  }
+  function stopScan() {
+    clearInterval(scanTimer); clearInterval(retTimer);
+    scanTimer = retTimer = 0;
+    reticles.innerHTML = "";
+  }
+  function startScan() {
+    stopScan();
+    lineIdx = 0;
+    statusText.textContent = SCAN_LINES[0];
+    scanTimer = setInterval(() => { lineIdx = (lineIdx + 1) % SCAN_LINES.length; statusText.textContent = SCAN_LINES[lineIdx]; }, 1300);
+    if (!reduced) { addReticle(); retTimer = setInterval(addReticle, 520); }
+  }
+
+  /* ---------- when an analysis finishes ---------- */
+  function onDone() {
+    const raw = $("quality-score").textContent.trim();
+    const score = /^\d+/.test(raw) ? parseInt(raw, 10) : null;
+    const counts = ["good-count", "defect-count", "total-count"].map((id) => [$(id), Number($(id).textContent) || 0]);
+
+    const s = readStats();
+    const rankBefore = rankOf(s.boards);
+    const prevBest = s.best;
+    const today = dayKey();
+    let streakUp = false;
+    if (s.last !== today) { s.streak = s.last === yesterdayKey() ? s.streak + 1 : 1; s.last = today; streakUp = true; }
+    s.boards += 1;
+    s.defects = (Number(s.defects) || 0) + counts[1][1];
+    const isBest = score != null && (prevBest == null || score > prevBest);
+    if (isBest) s.best = score;
+    writeStats(s);
+    renderStats();
+    const rankUp = rankOf(s.boards) > rankBefore;
+
+    // ring + numbers
+    const fg = $("ux-ringwrap"), ring = $("ux-ring-fg"), summaryFg = $("summary-ringwrap"), summaryRing = $("summary-ring-fg"), C = 326.73;
+    fg.dataset.tone = score == null ? "warn" : score >= 85 ? "ok" : score >= 60 ? "warn" : "bad";
+    ring.style.strokeDashoffset = String(C);
+    summaryFg.dataset.tone = fg.dataset.tone;
+    summaryRing.style.strokeDashoffset = String(C);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const offset = String(C * (1 - (score || 0) / 100));
+      ring.style.strokeDashoffset = offset;
+      summaryRing.style.strokeDashoffset = offset;
+    }));
+    if (score == null) {
+      $("quality-score").textContent = "N/A";
+      $("summary-quality-score").textContent = "N/A";
+    } else {
+      countUp($("quality-score"), score, (v) => `${v}%`, 1100);
+      countUp($("summary-quality-score"), score, (v) => `${v}%`, 1100);
+    }
+    counts.forEach(([el, value], index) => {
+      countUp(el, value, String, 800);
+      countUp($(["summary-good-count", "summary-defect-count", "summary-total-count"][index]), value, String, 800);
+    });
+
+    // message
+    let msg;
+    if (score == null) msg = "No classified joints came back. That doesn't confirm the board is clean. Try a closer, sharper photo.";
+    else if (isBest && prevBest != null) msg = `New personal best: ${score}% (was ${prevBest}%).`;
+    else if (prevBest == null) msg = "First board logged. Try another angle to see how the score changes.";
+    else if (score >= 90) msg = "On the joints it detected, this looks clean.";
+    else if (score >= 70) msg = "Mostly good. Check the flagged joints, touch them up, then re-shoot.";
+    else msg = "Several flagged joints. Rework them, then upload again to beat this score.";
+    $("ux-msg").textContent = msg;
+    $("summary-msg").textContent = msg;
+
+    if (rankUp) showToast(`Rank up: ${RANKS[rankOf(s.boards)].name}!`);
+    else if (isBest && prevBest != null) showToast(`New personal best: ${score}%`);
+    else if (streakUp && s.streak > 1) showToast(`${s.streak}-day streak. Nice.`);
+
+    if (score != null && score >= 85) setTimeout(burst, 350);
+  }
+
+  /* ---------- state machine ---------- */
   function sync() {
     const loading = btn.classList.contains("loading");
-    const failed = !$("error-message").classList.contains("hidden");
+    const failed = !errorBox.classList.contains("hidden");
     if (wasLoading && !loading) analyzed = !failed;
     wasLoading = loading;
-    const cap = caption.textContent;
-    if (cap !== lastCaption) { lastCaption = cap; if (!loading) analyzed = false; }
     const loaded = !preview.classList.contains("hidden");
     const state = loading ? "scanning" : !loaded ? "idle" : analyzed ? "done" : "ready";
+    if (state === prevState) return;
+
     root.dataset.state = state;
+    findingsButton.disabled = state !== "done";
+    resetButton.disabled = state === "idle" || state === "scanning";
     tag.textContent = TAGS[state];
-    if (state === "done" && prevState !== "done") setDrawer(true);
-    if (state !== "done") setDrawer(false);
-    if (state !== "idle") { stage.style.setProperty("--rx", "0deg"); stage.style.setProperty("--ry", "0deg"); }
+    steps.forEach((li, i) => { li.className = `ux-step is-${STEP_STATES[state][i]}`; });
+    if (state === "scanning") startScan(); else if (prevState === "scanning") stopScan();
+    if (state === "done") onDone();
+    if (state !== "idle") { stage.style.setProperty("--mx", "50%"); stage.style.setProperty("--my", "50%"); }
     prevState = state;
   }
 
-  $("ux-more").addEventListener("click", () => setDrawer(!drawer.classList.contains("is-open")));
-  $("ux-close").addEventListener("click", () => setDrawer(false));
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setDrawer(false); });
+  function onNewImage() {
+    if (!btn.classList.contains("loading")) analyzed = false;
+    sync();
+    resetCheck();
+    runPhotoCheck();
+  }
 
   const watcher = new MutationObserver(sync);
   watcher.observe(btn, { attributes: true, attributeFilter: ["class"] });
   watcher.observe(preview, { attributes: true, attributeFilter: ["class"] });
-  watcher.observe(caption, { childList: true, characterData: true, subtree: true });
-  watcher.observe($("error-message"), { attributes: true, attributeFilter: ["class"] });
-  sync();
+  watcher.observe(errorBox, { attributes: true, attributeFilter: ["class"] });
+  new MutationObserver(onNewImage).observe(caption, { childList: true, characterData: true, subtree: true });
 
-  // Sample chips drive the hidden select so the existing handler still runs
+  findingsButton.addEventListener("click", () => { if (!findingsButton.disabled) findingsDialog.showModal(); });
+  $("findings-close").addEventListener("click", () => findingsDialog.close());
+  findingsDialog.addEventListener("click", (event) => { if (event.target === findingsDialog) findingsDialog.close(); });
+
+  /* ---------- inputs ---------- */
   chips.forEach((chip) => chip.addEventListener("click", () => {
     select.value = chip.dataset.sample;
     select.dispatchEvent(new Event("change"));
     chips.forEach((c) => c.classList.toggle("is-on", c === chip));
   }));
-  $("file-input").addEventListener("change", () => chips.forEach((c) => c.classList.remove("is-on")));
+  fileInput.addEventListener("change", () => chips.forEach((c) => c.classList.remove("is-on")));
+  fileInput.addEventListener("click", () => { fileInput.value = ""; });
 
-  // Paste an image straight from the clipboard
   document.addEventListener("paste", (e) => {
-    if (!$("inspection-view").classList.contains("active")) return;
+    const section = $("inspection-view");
+    const bounds = section.getBoundingClientRect();
+    if (!$("home-view").classList.contains("active") || bounds.top > window.innerHeight || bounds.bottom < 0) return;
     const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
     const file = item?.getAsFile();
     if (file) setFile(new File([file], `pasted-${Date.now()}.${file.type.split("/")[1] || "png"}`, { type: file.type }));
   });
 
+  $("ux-again").addEventListener("click", () => { findingsDialog.close(); fileInput.click(); });
+  $("ux-download").addEventListener("click", () => {
+    preview.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `soldera-${(selectedName || "board").replace(/\.[^.]+$/, "")}-analysis.png`;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, "image/png");
+  });
+
+  /* ---------- tips carousel ---------- */
+  const tips = [...document.querySelectorAll("#ux-tips .ux-tip")];
+  const tipDots = $("ux-tip-dots");
+  let tipI = 0, tipTimer = 0;
+  function showTip(i) {
+    tipI = (i + tips.length) % tips.length;
+    tips.forEach((t, k) => t.classList.toggle("is-on", k === tipI));
+    const compactTip = $("ux-photo-tip-text");
+    if (compactTip && tips[tipI]) compactTip.textContent = tips[tipI].textContent;
+    [...tipDots.children].forEach((d, k) => d.classList.toggle("is-on", k === tipI));
+  }
+  function restartTips() {
+    clearInterval(tipTimer);
+    if (!reduced) tipTimer = setInterval(() => showTip(tipI + 1), 5200);
+  }
+  tips.forEach((_, i) => {
+    const d = document.createElement("button");
+    d.type = "button"; d.setAttribute("aria-label", `Show tip ${i + 1}`);
+    d.addEventListener("click", () => { showTip(i); restartTips(); });
+    tipDots.append(d);
+  });
+  $("ux-tips").addEventListener("mouseenter", () => clearInterval(tipTimer));
+  $("ux-tips").addEventListener("mouseleave", restartTips);
+  showTip(0); restartTips();
+
+  /* ---------- pointer polish ---------- */
   if (fine) {
-    // Glass spotlight follows the pointer; the card tilts slightly while waiting for an image
     stage.addEventListener("pointermove", (e) => {
       const r = stage.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top) / r.height;
       stage.style.setProperty("--mx", `${e.clientX - r.left}px`);
       stage.style.setProperty("--my", `${e.clientY - r.top}px`);
-      if (root.dataset.state === "idle") {
-        stage.style.setProperty("--ry", `${(px - 0.5) * 5}deg`);
-        stage.style.setProperty("--rx", `${(0.5 - py) * 4}deg`);
-      }
     });
-    stage.addEventListener("pointerleave", () => {
-      stage.style.setProperty("--rx", "0deg");
-      stage.style.setProperty("--ry", "0deg");
-    });
-
-    // Magnetic analyze button
     btn.addEventListener("pointermove", (e) => {
       if (btn.disabled) return;
       const r = btn.getBoundingClientRect();
@@ -1101,44 +1842,18 @@ $("save-settings").addEventListener("click", saveSettings);
     btn.addEventListener("pointerleave", () => { btn.style.translate = ""; });
   }
 
-  // Count-up animation for the numbers
-  ["good-count", "defect-count", "total-count"].forEach((id) => {
-    const el = $(id);
-    let displayed = Number(el.textContent) || 0;
-    let requested = null;
-    let run = 0;
-    let observer;
-
-    function writeDisplay(value) {
-      observer.disconnect();
-      el.textContent = String(value);
-      observer.observe(el, { childList: true, characterData: true, subtree: true });
-      displayed = value;
-    }
-
-    observer = new MutationObserver(() => {
-      const target = Number(el.textContent) || 0;
-      if (target === requested) return;
-      requested = target;
-      const thisRun = ++run;
-      const from = displayed;
-      const start = performance.now();
-
-      function step(now) {
-        if (thisRun !== run) return;
-        const progress = Math.min(1, (now - start) / 700);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        writeDisplay(Math.round(from + (target - from) * eased));
-        if (progress < 1) requestAnimationFrame(step);
-        else {
-          el.parentElement.classList.remove("pop");
-          void el.offsetWidth;
-          el.parentElement.classList.add("pop");
-        }
-      }
-
-      step(start);
-    });
-    observer.observe(el, { childList: true, characterData: true, subtree: true });
-  });
+  renderStats();
+  resetCheck();
+  sync();
 })();
+
+/* Orange solder-spark edge light for the main action buttons. */
+document.querySelectorAll(".solder-spark-button").forEach((button) => {
+  button.addEventListener("pointermove", (event) => {
+    const rect = button.getBoundingClientRect();
+    const angle = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2) * 180 / Math.PI + 90 - 328;
+    button.style.setProperty("--spark-angle", `${angle}deg`);
+    button.classList.add("is-following-spark");
+  });
+  button.addEventListener("pointerleave", () => button.classList.remove("is-following-spark"));
+});
